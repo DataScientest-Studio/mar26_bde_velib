@@ -5,7 +5,10 @@ import joblib
 
 import psycopg2
 import psycopg2.extras
+import pandas as pd
 
+
+from sqlalchemy import create_engine
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -13,6 +16,45 @@ load_dotenv()
 
 MODEL_PATH = Path("models/model.pkl")
 DATA_PATH = Path("data/processed/velib_dataset.csv")
+
+
+def create_table() -> None:
+
+    """
+    Creation de la table predictions_velib dans PostgreSQL
+    
+    """
+
+    pg_conn = psycopg2.connect(
+            database="velib",
+            user=os.getenv("PG_Login"),
+            password=os.getenv("PG_password"),
+            host=os.getenv("PG_host"),
+            port=os.getenv("PG_port")
+        )
+    
+
+    with pg_conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS predictions_velib (
+                id                  SERIAL PRIMARY KEY,
+                station_id          BIGINT NOT NULL,
+                num_docks_available INT,
+                num_bikes_mechanical INT,
+                num_bikes_ebike     INT,
+                num_bikes_available     INT,
+                capacity            INT,
+                collected_at        TIMESTAMPTZ DEFAULT NOW(),
+                hour                int ,
+                day_of_week         INT ,
+                prediction          INT
+            );
+                    
+
+
+        """)
+    pg_conn.commit()
+
 
 
 def extrat_postgres_data():
@@ -85,6 +127,21 @@ def main():
     preds = model.predict(X)
 
     df["prediction"] = preds
+
+
+    user = os.getenv("PG_Login")
+    password = os.getenv("PG_password")
+    host = os.getenv("PG_host")
+    port = os.getenv("PG_port")
+    db = "velib"
+
+
+    create_table()
+    engine = create_engine(f'postgresql://{user}:{password}@{host}:{port}/{db}')
+    df.to_sql('predictions_velib', engine, if_exists='append', index=False)
+    print("Predictions saved in PostgreSQL table: predictions_velib")
+
+
 
     print(df.head())
     os.makedirs('data/processed', exist_ok=True)

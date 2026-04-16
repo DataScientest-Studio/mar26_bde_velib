@@ -54,4 +54,4 @@ if __name__ == "__main__":
         "apikey": os.getenv("RER_KEY") ,
 
     }
-    main( "RER" ,"https://prim.iledefrance-mobilites.fr/marketplace//estimated-timetable?LineRef=ALL" , headers_dict )
+    #main( "RER" ,"https://prim.iledefrance-mobilites.fr/marketplace//estimated-timetable?LineRef=ALL" , headers_dict )
