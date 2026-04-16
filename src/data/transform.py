@@ -140,12 +140,14 @@ def mango_station_info( pg_conn):
 
                 station_id = station['station_id']
                 name = station['name']
+                capacity = station['capacity']
                 lat = station['lat']
                 lon = station['lon']
   
                 table_stations.append({
                     "station_id": station_id,
                     "name" : name ,
+                    "capacity" : capacity ,
                     "lat" : lat ,
                     "lon" : lon
                 })
@@ -175,13 +177,14 @@ def create_table(pg_conn) -> None:
                 inserted_at         TIMESTAMPTZ DEFAULT NOW()
             );
                     
-            --ALTER TABLE station_info_flat ALTER COLUMN station_id TYPE BIGINT;
-            --ALTER TABLE station_status_flat ALTER COLUMN station_id TYPE BIGINT;
+            ALTER TABLE station_info_flat ALTER COLUMN station_id TYPE BIGINT;
+            ALTER TABLE station_status_flat ALTER COLUMN station_id TYPE BIGINT;
                     
 
             CREATE TABLE IF NOT EXISTS station_info_flat ( 
                 station_id    BIGINT PRIMARY KEY, 
                 name          TEXT NOT NULL,
+                capacity      INT NOT NULL,    
                 lat           DOUBLE PRECISION NOT NULL,
                 lon           DOUBLE PRECISION NOT NULL) ;
         """)
@@ -227,15 +230,16 @@ def insert_stations_info(pg_conn, stations: list[dict]) -> None:
         psycopg2.extras.execute_values(
             cur,
             """
-            INSERT INTO station_info_flat (station_id, name, lat, lon)
+            INSERT INTO station_info_flat (station_id , name , capacity ,  lat, lon)
             VALUES %s
             ON CONFLICT (station_id) 
             DO UPDATE SET 
                 name = EXCLUDED.name,
+                capacity = EXCLUDED.capacity,
                 lat = EXCLUDED.lat,
                 lon = EXCLUDED.lon;
             """,
-            [(s["station_id"], s["name"], s["lat"], s["lon"] )
+            [(s["station_id"], s["name"], s["capacity"] , s["lat"], s["lon"] )
              for s in stations]
         )
     pg_conn.commit()
@@ -259,14 +263,14 @@ def main() :
     try:
         create_table(pg_conn) 
 
-
+        
         station =  mango_station_info(pg_conn)
         insert_stations_info(pg_conn, station)
 
         
         station = mango_station_satut(pg_conn)
         insert_stations(pg_conn, station)
-
+        
     except Exception as e:
         pg_conn.rollback()
         print(f"Erreur : {e}")
