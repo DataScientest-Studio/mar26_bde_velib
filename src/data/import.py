@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 #API_URL = "https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json"
 
 load_dotenv()
-MONGO_URI = os.getenv("MONGO_URL")
+MONGO_URL = os.getenv("MONGO_URL")
 
 #MONGO_URI = os.getenv("MONGO_URI", "mongodb://admin:password1234@localhost:27017/")
 
@@ -25,16 +25,20 @@ def appel_url(url: str , headers_dict = None ) -> dict:
 
 
 def insert_mongo(client: pymongo.MongoClient, data: dict, table_name: str) -> None:
-    col = client["velib"][table_name]
+    col = client["db_velib"][table_name]
     result = col.insert_one(data)
     #result = col.insert_many(data)
     print(f"Inserted: {result.inserted_id}")
 
 def main(base , API_URL , headers_dict = None  ):
-    client = pymongo.MongoClient(MONGO_URI)  
+    client = pymongo.MongoClient(MONGO_URL)  
+    
+
+    
     try:
         data = appel_url(API_URL, headers_dict)
         data["_ingested_at"] = datetime.now(timezone.utc)
+        
         insert_mongo(client, data, base )
 
     except Exception as e:
@@ -55,3 +59,4 @@ if __name__ == "__main__":
 
     }
     #main( "RER" ,"https://prim.iledefrance-mobilites.fr/marketplace//estimated-timetable?LineRef=ALL" , headers_dict )
+    
