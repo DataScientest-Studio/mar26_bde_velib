@@ -15,7 +15,7 @@ def extrat_postgres_data():
     try:
         print( f" message {os.getenv("PG_LOGIN")}")
         conn = psycopg2.connect(
-            database="velib",
+            database="db_velib",
             user=os.getenv("PG_LOGIN"),
             password=os.getenv("PG_PASSWORD"),
             host=os.getenv("PG_HOST"),

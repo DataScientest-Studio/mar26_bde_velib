@@ -42,7 +42,7 @@ def mango_station_satut( pg_conn):
     """
     myclient = pymongo.MongoClient(MONGO_URL)
     try :
-        mydb = myclient["velib"]
+        mydb = myclient["db_velib"]
         mycol = mydb["station_status"]
 
 
@@ -115,7 +115,7 @@ def mango_station_info( pg_conn):
     """
     myclient = pymongo.MongoClient(MONGO_URL)
     try :
-        mydb = myclient["velib"]
+        mydb = myclient["db_velib"]
         mycol = mydb["station_info"]
 
 
@@ -253,13 +253,14 @@ def main() :
 
     
     pg_conn = psycopg2.connect(
-            database="velib",
+            database="db_velib",
             user= os.getenv("PG_LOGIN"),
             password= os.getenv("PG_PASSWORD"),
             host= os.getenv("PG_HOST"),
             port= os.getenv("PG_PORT")
         )
     
+    print(os.getenv("PG_PORT") )
     try:
         create_table(pg_conn) 
 

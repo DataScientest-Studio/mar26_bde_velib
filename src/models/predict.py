@@ -26,7 +26,7 @@ def create_table() -> None:
     """
 
     pg_conn = psycopg2.connect(
-            database="velib",
+            database="db_velib",
             user=os.getenv("PG_LOGIN"),
             password=os.getenv("PG_PASSWORD"),
             host=os.getenv("PG_HOST"),
@@ -62,7 +62,7 @@ def extrat_postgres_data():
 
     try:
         conn = psycopg2.connect(
-            database="velib",
+            database="db_velib",
             user=os.getenv("PG_LOGIN"),
             password=os.getenv("PG_PASSWORD"),
             host=os.getenv("PG_HOST"),
@@ -133,7 +133,7 @@ def main():
     password = os.getenv("PG_PASSWORD")
     host = os.getenv("PG_HOST")
     port = os.getenv("PG_PORT")
-    db = "velib"
+    db = "db_velib"
 
 
     create_table()
