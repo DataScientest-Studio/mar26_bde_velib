@@ -37,10 +37,7 @@ def insert_mongo(client: pymongo.MongoClient, data: dict, table_name: str) -> No
         all_records = []
         
         for d in deliveries:
-            # IDFM place les bus/trains soit dans 'EstimatedJourneyVersionFrame'
-            # soit directement dans 'EstimatedVehicleJourney'
-            
-            # Cas A : Structure groupée
+
             frames = d.get("EstimatedJourneyVersionFrame", [])
             for frame in frames:
                 journeys = frame.get("EstimatedVehicleJourney", [])
@@ -49,7 +46,6 @@ def insert_mongo(client: pymongo.MongoClient, data: dict, table_name: str) -> No
                 elif isinstance(journeys, dict):
                     all_records.append(journeys)
             
-            # Cas B : Structure directe (fréquent pour les bus/RER en temps réel)
             direct_journeys = d.get("EstimatedVehicleJourney", [])
             if direct_journeys:
                 if isinstance(direct_journeys, list):
@@ -89,6 +85,9 @@ def main(base , API_URL , headers_dict = None  ):
         print(f"⛔    {datetime.now(timezone.utc)} -  Erreur : {e}")
     finally:
         client.close()
+
+
+        
 
 if __name__ == "__main__":
 

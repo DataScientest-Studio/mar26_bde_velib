@@ -33,6 +33,23 @@ def message(pg_conn):
         return datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 
+def message_meteo(pg_conn):
+
+    """
+    recuper le dernier heure du dernier message dans la table meteo
+    :
+
+    sortie : date 
+    
+    """
+    
+    with pg_conn.cursor() as cur:
+        cur.execute("SELECT inserted_at FROM meteo ORDER BY inserted_at DESC LIMIT 1;")
+        row = cur.fetchone()
+        if row:
+            
+            return row[0] 
+        return datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 def mango_station_satut( pg_conn): 
 
@@ -65,8 +82,6 @@ def mango_station_satut( pg_conn):
             #table_stations = []
             
             for station in  stations :
-                
-                
 
                 velo_total  = station.get('num_bikes_available')
                 
@@ -92,8 +107,6 @@ def mango_station_satut( pg_conn):
                     "ebike" : ebike, 
                     "date" : extracted_at
 
-
-                    #"extracted_at": extracted_at,
 
                 })
 
@@ -189,6 +202,16 @@ def create_table(pg_conn) -> None:
                 capacity      INT NOT NULL,    
                 lat           DOUBLE PRECISION NOT NULL,
                 lon           DOUBLE PRECISION NOT NULL) ;
+                    
+            CREATE TABLE IF NOT EXISTS meteo (
+                id SERIAL PRIMARY KEY,
+                city_name TEXT,
+                temp DOUBLE PRECISION,
+                humidity INT,
+                description TEXT,
+                wind_speed DOUBLE PRECISION,
+                inserted_at TIMESTAMPTZ DEFAULT NOW()      );
+                    
         """)
     pg_conn.commit()
 
@@ -247,8 +270,42 @@ def insert_stations_info(pg_conn, stations: list[dict]) -> None:
     pg_conn.commit()
     print(f"✅    {datetime.now(timezone.utc)} - {len(stations)} information  stations insérées dans PostgreSQL.")
 
-
+def mango_meteo(pg_conn):
+    """ Extrait les données météo de Mongo """
+    client = pymongo.MongoClient(MONGO_URL)
+    try:
+        db = client["db_velib"]
+        col = db["medeo"]
+        date = message_meteo(pg_conn)
+        
+        cursor = col.find({"_ingested_at": {"$gt": date}})
+        data = []
+        #print( cursor  )
+        for doc in cursor:
+            print( doc  )
+            data.append({
+                "city": doc.get("name"),
+                "temp": doc.get("main", {}).get("temp"),
+                "humidity": doc.get("main", {}).get("humidity"),
+                "desc": doc.get("weather", [{}])[0].get("description"),
+                "wind": doc.get("wind", {}).get("speed"),
+                "date": doc.get("_ingested_at")
+            })
+        return data
+    finally:
+        client.close()
     
+def insert_meteo(pg_conn, data):
+    if not data: return
+    with pg_conn.cursor() as cur:
+        psycopg2.extras.execute_values(
+            cur,
+            "INSERT INTO meteo (city_name, temp, humidity, description, wind_speed, inserted_at) VALUES %s",
+            [(d["city"], d["temp"], d["humidity"], d["desc"], d["wind"], d["date"]) for d in data]
+        )
+    pg_conn.commit()
+    print(f"☀️ {datetime.now(timezone.utc)} - {len(data)} météo insérée(s).")
+
 
 def main() : 
 
@@ -273,6 +330,9 @@ def main() :
         
         station = mango_station_satut(pg_conn)
         insert_stations(pg_conn, station)
+
+        meteo = mango_meteo(pg_conn)
+        insert_meteo(pg_conn ,meteo)
         
     except Exception as e:
         pg_conn.rollback()
@@ -284,4 +344,4 @@ def main() :
 
 
 if __name__ == "__main__":
-    print("Appel de la fonction transformation  ")
+    main()
