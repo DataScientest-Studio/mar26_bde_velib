@@ -39,6 +39,9 @@ def extrat_postgres_data():
                  prediction
 
             FROM predictions_velib
+            WHERE collected_at = (SELECT collected_at FROM predictions_velib order by collected_at desc LIMIT 1) 
+            
+
         """
         
         # 3. Chargement dans Pandas

@@ -90,3 +90,6 @@ target/
 
 # Virtual Environment
 bde_velib/
+
+#Model
+models/model.pkl

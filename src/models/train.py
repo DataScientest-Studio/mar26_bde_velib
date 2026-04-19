@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import joblib
-
+from sqlalchemy import create_engine
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import root_mean_squared_error
 
@@ -17,21 +17,21 @@ DATA_PATH = Path("data/processed/velib_dataset.csv")
 MODEL_PATH = Path("models/model.pkl")
 
 
-def extrat_postgres_data():
-
-
+def extract_postgres_data():
+    # Construction de l'URL de connexion (URI)
+    user = os.getenv("PG_LOGIN")
+    password = os.getenv("PG_PASSWORD")
+    host = os.getenv("PG_HOST")
+    port = os.getenv("PG_PORT")
+    dbname = "db_velib"
+    
+    # Format : postgresql://user:password@host:port/dbname
+    connection_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    
     try:
-        conn = psycopg2.connect(
-            database="db_velib",
-            user=os.getenv("PG_LOGIN"),
-            password=os.getenv("PG_PASSWORD"),
-            host=os.getenv("PG_HOST"),
-            port=os.getenv("PG_PORT")
-        )
-        
+        # Création du moteur SQLAlchemy
+        engine = create_engine(connection_string)
 
-
-        # 2. La requête SQL corrigée
         query = """
             SELECT 
                 s.station_id, 
@@ -45,18 +45,13 @@ def extrat_postgres_data():
             JOIN station_info_flat i ON s.station_id = i.station_id;
         """
         
-        # 3. Chargement dans Pandas
-        # On utilise le bloc 'with' pour s'assurer que la connexion se ferme
-        df = pd.read_sql_query(query, conn)
-        
+        # Avec SQLAlchemy, Pandas gère l'ouverture/fermeture seul
+        df = pd.read_sql_query(query, engine)
         return df
 
     except Exception as e:
-        print(f"Erreur de connexion ou de requête : {e}")
+        print(f"Erreur lors de l'extraction : {e}")
         return None
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 
 
@@ -70,7 +65,7 @@ def main():
 
     
     #df = pd.read_csv(DATA_PATH)
-    df = extrat_postgres_data()
+    df = extract_postgres_data()
 
     print(f"   shape = {df.shape}")
     print(f"   colonnes = {list(df.columns)}")

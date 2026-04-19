@@ -82,7 +82,8 @@ def extrat_postgres_data():
                 i.capacity, 
                 s.inserted_at as collected_at
             FROM station_status_flat s
-            JOIN station_info_flat i ON s.station_id = i.station_id;
+            JOIN station_info_flat i ON s.station_id = i.station_id
+            where s.inserted_at = (SELECT inserted_at from station_status_flat ORDER BY inserted_at DESC LIMIT 1)
         """
         
         # 3. Chargement dans Pandas
