@@ -45,7 +45,8 @@ def extract_postgres_data():
                 w.temp, 
                 w.humidity, 
                 w.wind_speed,
-                w.description , w.inserted_at 
+                w.description , 
+                w.inserted_at 
             FROM station_status_flat s
             JOIN station_info_flat i ON s.station_id = i.station_id
             LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at)  ;
@@ -61,6 +62,19 @@ def extract_postgres_data():
 
 
 
+def Model_RandomForest ( X_train, X_test, y_train, y_test ) :
+
+    model = RandomForestRegressor(n_estimators=50, random_state=42 , max_depth=25 , n_jobs= 10 , verbose= 1 )
+    model.fit(X_train, y_train)
+    print('Score sur ensemble train', model.score(X_train, y_train))
+    print('Score sur ensemble test', model.score(X_test, y_test))
+
+    preds = model.predict(X)
+    rmse = root_mean_squared_error(y, preds)
+
+    print(f"RMSE = {rmse:.2f}")
+
+    return model
 
 
 
@@ -84,19 +98,21 @@ def main():
 
     weather_map = {
             "ciel dégagé": 0,
-            "partiellement nuageux": 1,
-            "nuageux": 2,
-            "pluie légère": 3,
-            "pluie": 4,
-            "orage": 5
+            "peu nuageux" : 1 ,
+            "partiellement nuageux" :2 ,
+            "couvert": 3 ,
+            "nuageux" : 4 ,
+            "averses" : 5,
+            "pluie" : 6 ,
+            "orage" : 7 ,            
+            "neige" : 8 ,
+            "brume" : 9
             }
     
     df['description_code'] = df['description'].map(weather_map).fillna(-1)
     
     df['description_code'].head()
 
-    
-    # conversion timestamp
     df["collected_at"] = pd.to_datetime(df["collected_at"])
 
     df["hour"] = df["collected_at"].dt.hour
@@ -110,28 +126,14 @@ def main():
     X = df[["station_id", "hour", "minute" , "day_of_week", 'temp', "humidity", "wind_speed", "description_code", "capacity" ]]
     y = df["target_pct"]
 
-    #X = df[["hour", "day_of_week", "capacity"]]
-    #y = df["num_bikes_available"]
+
 
     print(f"   X.shape = {X.shape}")
 
     print("4) Entraînement...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
-
-    model = RandomForestRegressor(n_estimators=50, random_state=42 , max_depth=25 , n_jobs= 10 , verbose= 1 )
-    #model = RandomForestRegressor(n_estimators=50, random_state=42 )
-    #model.fit(X, y)
-    model.fit(X_train, y_train)
-    print('Score sur ensemble train', model.score(X_train, y_train))
-    print('Score sur ensemble test', model.score(X_test, y_test))
-    
-
-
-    preds = model.predict(X)
-    rmse = root_mean_squared_error(y, preds)
-
-    print(f"RMSE = {rmse:.2f}")
+    model = Model_RandomForest(X_train, X_test, y_train, y_test)
 
     print("5) Sauvegarde modèle...")
 
