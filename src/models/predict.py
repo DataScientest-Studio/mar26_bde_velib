@@ -21,7 +21,7 @@ DATA_PATH = Path("data/processed/velib_dataset.csv")
 def create_table() -> None:
 
     """
-    Creation de la table predictions_velib dans PostgreSQL
+    Création de la table predictions_velib dans PostgreSQL
     
     """
 
