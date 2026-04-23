@@ -18,7 +18,7 @@ MONGO_URL = os.getenv("MONGO_URL")
 def message(pg_conn):
 
     """
-    recuper le dernier heure du dernier message dans la table station_status_flat
+    Récuperer la dernière heure du dernier message dans la table station_status_flat
     :
 
     sortie : date 
@@ -36,7 +36,7 @@ def message(pg_conn):
 def message_meteo(pg_conn):
 
     """
-    recuper le dernier heure du dernier message dans la table meteo
+    Récuperer la dernière heure du dernier message dans la table meteo
     :
 
     sortie : date 
@@ -55,7 +55,7 @@ def mango_station_satut( pg_conn):
 
 
     """
-    Extration des donnée depuis la base de données MongoDB .
+    Extraction des données depuis la base de données MongoDB .
     
     
     """
@@ -66,7 +66,7 @@ def mango_station_satut( pg_conn):
 
 
         date = message(pg_conn)
-        print(f"✅    {datetime.now(timezone.utc)} -Dernier enregistrement postgres:  {date}")
+        print(f"✅    {datetime.now(timezone.utc)} - Dernier enregistrement postgreSQL:  {date}")
         stations_filtre = mycol.find({"_ingested_at": {"$gt": date }})
         
         table_stations = []
@@ -74,7 +74,7 @@ def mango_station_satut( pg_conn):
         for stations in stations_filtre :
             
             extracted_at = stations['_ingested_at']
-            print(f"✅    {datetime.now(timezone.utc)} -Alimentation enregistrement dans mango : {extracted_at}")
+            print(f"✅    {datetime.now(timezone.utc)} - Alimentation enregistrement dans MongoDB : {extracted_at}")
 
 
         
@@ -115,7 +115,7 @@ def mango_station_satut( pg_conn):
         return table_stations
             
     except Exception as e:
-        print(f"⛔    {datetime.now(timezone.utc)} -  Erreur : {e}")
+        print(f"⛔    {datetime.now(timezone.utc)} - Erreur : {e}")
     finally:
         myclient.close()
 
@@ -124,7 +124,7 @@ def mango_station_info( pg_conn):
 
 
     """
-    Extration des donnée depuis la base de données MongoDB .
+    Extration des données depuis la base de données MongoDB .
     
     
     """
@@ -135,7 +135,7 @@ def mango_station_info( pg_conn):
 
 
         date = message(pg_conn)
-        print(f"✅    {datetime.now(timezone.utc)} -Dernier enregistrement :   {date}")
+        print(f"✅    {datetime.now(timezone.utc)} -Dernier enregistrement : {date}")
         stations_filtre = mycol.find({"_ingested_at": {"$gt": date }})
         
         table_stations = []
@@ -170,7 +170,7 @@ def mango_station_info( pg_conn):
             
         return table_stations
     except Exception as e:
-        print(f"⛔    {datetime.now(timezone.utc)} -  Erreur : {e}")
+        print(f"⛔    {datetime.now(timezone.utc)} - Erreur : {e}")
     finally:
         myclient.close()
 
@@ -178,7 +178,7 @@ def mango_station_info( pg_conn):
 def create_table(pg_conn) -> None:
 
     """
-    Creation de la table station_status_flat dans PostgreSQL
+    Création de la table station_status_flat dans PostgreSQL
     
     """
     with pg_conn.cursor() as cur:
@@ -271,7 +271,7 @@ def insert_stations_info(pg_conn, stations: list[dict]) -> None:
     print(f"✅    {datetime.now(timezone.utc)} - {len(stations)} information  stations insérées dans PostgreSQL.")
 
 def mango_meteo(pg_conn):
-    """ Extrait les données météo de Mongo """
+    """ Extrait les données météo depuis MongoDB """
     client = pymongo.MongoClient(MONGO_URL)
     try:
         db = client["db_velib"]
