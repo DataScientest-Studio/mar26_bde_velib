@@ -119,6 +119,6 @@ if __name__ == "__main__":
 
 
     if mode == "minute":
-        print(f"📞    {datetime.now(timezone.utc)} - Appel de la fonction transformation Mongo vers posgres") 
-        transform.main()
-        print(f"⏰    {datetime.now(timezone.utc)} - Fin de l'appel a la fonction tranformation") 
+        #print(f"📞    {datetime.now(timezone.utc)} - Appel de la fonction transformation Mongo vers posgres") 
+        #transform.main()
+        #print(f"⏰    {datetime.now(timezone.utc)} - Fin de l'appel a la fonction tranformation") 
