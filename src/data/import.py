@@ -4,12 +4,16 @@ import pymongo
 from datetime import datetime
 from datetime import datetime, timezone
 import sys
-import os
+import pandas as pd
 from dotenv import load_dotenv
 
-import transform
 
-#API_URL = "https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json"
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from src.config.logger_config import setup_logger 
+from src.data.Mongo_Request import MongoRequest
+import transform  
+logger = setup_logger()
 
 load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
@@ -79,7 +83,7 @@ def main(base , API_URL , headers_dict = None  ):
         data = appel_url(API_URL, headers_dict)
         data["_ingested_at"] = datetime.now(timezone.utc)
         
-        insert_mongo(client, data, base )
+        MongoRequest.insert_mongo( data, base )
 
     except Exception as e:
         print(f"⛔    {datetime.now(timezone.utc)} -  Erreur : {e}")
@@ -94,24 +98,35 @@ if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "minute"
 
     if mode == "minute":
-        print(f"🚲    {datetime.now(timezone.utc)} - Appel API  station_status ")
+        #print(f"🚲    {datetime.now(timezone.utc)} - Appel API  station_status ")
+        logger.info(f"🚲 - Appel API  station_status ")
         main( "station_status" ,"https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json" )
 
-        print(f"🚈 ℹ️ {datetime.now(timezone.utc)} - Appel API  info_trafic ")
+        #print(f"🚈 ℹ️ {datetime.now(timezone.utc)} - Appel API  info_trafic ")
+        logger.info(f"🚈 ℹ️  - Appel API  info_trafic ")
         headers_dict ={ "apikey": os.getenv("RER_KEY") , }
         main( "info_trafic" ,"https://prim.iledefrance-mobilites.fr/marketplace/disruptions_bulk/disruptions/v2" , headers_dict )
 
     elif mode == "daily":    
-        print(f"🚲 ℹ️ {datetime.now(timezone.utc)} - Appel API  station_info ")
+        #print(f"🚲 ℹ️ {datetime.now(timezone.utc)} - Appel API  station_info ")
+        logger.info(f"🚲 ℹ️ - Appel API  station_info ")
         main( "station_info" ,"https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_information.json" )
 
     #main( "medeo" ,f"https://api.openweathermap.org/data/2.5/weather?lat=48.8566&lon=2.3522&appid={os.getenv("METEO_KEY")}" )
     elif mode == "hourly":
-        print(f"☀️    {datetime.now(timezone.utc)} - Appel API  medeo ")
-        main( "medeo" ,f"https://api.openweathermap.org/data/2.5/weather?units=metric&lang=fr&q=paris&appid={os.getenv("METEO_KEY")}" )
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(base_dir, "communes.csv")
+        ville_meteo = pd.read_csv(csv_path)
+
+        for ville in ville_meteo :
+            #print(f"☀️    {datetime.now(timezone.utc)} - Appel API  medeo ")
+            logger.info(f"☀️  - Appel API  medeo ")
+            main( "medeo" ,f"https://api.openweathermap.org/data/2.5/weather?units=metric&lang=fr&q={ville}&appid={os.getenv("METEO_KEY")}" )
 
     elif mode == "5minutes":
-        print(f"🚈    {datetime.now(timezone.utc)} - Appel API  rer_passage ")
+        #print(f"🚈    {datetime.now(timezone.utc)} - Appel API  rer_passage ")
+        logger.info(f"🚈 - Appel API  rer_passage ")
         headers_dict ={"apikey": os.getenv("RER_KEY") , }
         main( "rer_passage" ,"https://prim.iledefrance-mobilites.fr/marketplace//estimated-timetable?LineRef=ALL" , headers_dict )
     
@@ -120,5 +135,7 @@ if __name__ == "__main__":
 
     if mode == "minute":
         #print(f"📞    {datetime.now(timezone.utc)} - Appel de la fonction transformation Mongo vers posgres") 
-        #transform.main()
+        logger.info(f"📞 - Appel de la fonction transformation Mongo vers posgres")
+        transform.main()
         #print(f"⏰    {datetime.now(timezone.utc)} - Fin de l'appel a la fonction tranformation") 
+        logger.info(f"⏰  - Fin de l'appel a la fonction tranformation")

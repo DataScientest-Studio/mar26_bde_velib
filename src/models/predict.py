@@ -10,9 +10,13 @@ import pandas as pd
 
 from sqlalchemy import create_engine
 import os
+import sys
 from dotenv import load_dotenv
 load_dotenv()
-
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from src.data.Postgre_Request import PostgreRequest
+from src.config.logger_config import setup_logger 
+logger = setup_logger()
 
 MODEL_PATH = Path("models/model.pkl")
 DATA_PATH = Path("data/processed/velib_dataset.csv")
@@ -108,7 +112,8 @@ def main():
 
     print("2) Chargement données...")
     #df = pd.read_csv(DATA_PATH)
-    df = extrat_postgres_data()
+    df = PostgreRequest.extract_postgres_data_training()
+    #df = extrat_postgres_data()
 
     print(f"   colonnes = {list(df.columns)}")
 
