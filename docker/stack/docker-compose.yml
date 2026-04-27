@@ -1,0 +1,61 @@
+services:
+
+  postgresql:
+    image: postgres:16
+    container_name: postgresql
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      ROMAIN_PASSWORD: ${PG_ROMAIN_PASSWORD}
+      NAHED_PASSWORD: ${PG_NAHED_PASSWORD}
+      BELKACEM_PASSWORD: ${PG_BELKACEM_PASSWORD}
+      VELIB_PASSWORD: ${PG_VELIB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-postgres:/docker-entrypoint-initdb.d
+    networks:
+      - backend
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+      ROMAIN_PASSWORD: ${MG_ROMAIN_PASSWORD}
+      NAHED_PASSWORD: ${MG_NAHED_PASSWORD}
+      BELKACEM_PASSWORD: ${MG_BELKACEM_PASSWORD}
+      VELIB_PASSWORD: ${MG_VELIB_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+      - ./init-mongo:/docker-entrypoint-initdb.d
+    networks:
+      - backend
+
+  python:
+    build: ./python
+    container_name: python
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - ./python/workspace:/workspace
+    working_dir: /workspace
+    depends_on:
+      - postgresql
+      - mongodb
+    networks:
+      - backend
+
+volumes:
+  pg_data:
+  mongo_data:
+
+networks:
+  backend:
+    driver: bridge
