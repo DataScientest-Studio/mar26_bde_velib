@@ -1,29 +1,27 @@
 from pathlib import Path
 import pandas as pd
 import joblib
-from sqlalchemy import create_engine
+import numpy as np
+import os
+import sys
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
-import psycopg2
-import numpy as np
-
-import os
-import sys
 from dotenv import load_dotenv
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from src.data.Postgre_Request import PostgreRequest
-from src.config.logger_config import setup_logger 
+from src.config.logger_config import setup_logger
+
 logger = setup_logger()
 load_dotenv()
 
 MODEL_PATH = Path("models/model.pkl")
 
 
-
 def Model_RandomForest ( X_train, X_test, y_train, y_test ) :
 
-    model = RandomForestRegressor(n_estimators=100, random_state=42 , max_depth=20 , n_jobs= 10 , verbose= 1 )
+    model = RandomForestRegressor(n_estimators=100, random_state=42 , max_depth=20 , n_jobs= 8 , verbose= 1 )
     model.fit(X_train, y_train)
     print(f"Score train : {model.score(X_train, y_train):.4f}")
     print(f"Score test  : {model.score(X_test, y_test):.4f}")
@@ -38,7 +36,9 @@ def Model_RandomForest ( X_train, X_test, y_train, y_test ) :
 
 
 def main():
-    print("1) Chargement des données...")
+    logger.info("Lancement entrainement du modèle...")
+    logger.info("Chargement des données...")
+    #print("1) Chargement des données...")
 
     
     #df = pd.read_csv(DATA_PATH)
@@ -51,7 +51,8 @@ def main():
     if df.empty:
         raise ValueError("Dataset vide")
 
-    print("2) Feature engineering...")
+    logger.info("Feature engineering...")
+    #print("2) Feature engineering...")
 
 
     weather_map = {
@@ -88,8 +89,8 @@ def main():
     df["min_cos"] = np.cos(2 * np.pi * m / 60)
 
 
-
-    print("3) Préparation des variables...")
+    logger.info("Préparation des variables...")
+    #print("3) Préparation des variables...")
     df = df[df["capacity"] > 0].copy()
     df["target_pct"] = df["num_bikes_available"] / df["capacity"]
 
@@ -99,14 +100,15 @@ def main():
     y = df["target_pct"]
 
 
-
+    
     print(f"   X.shape = {X.shape}")
-
+    logger.info("Entraînement..")
     print("4) Entraînement...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
     model = Model_RandomForest(X_train, X_test, y_train, y_test )
 
+    logger.info("Sauvegarde modèle...")
     print("5) Sauvegarde modèle...")
 
 
@@ -114,7 +116,7 @@ def main():
     joblib.dump(model, MODEL_PATH)
 
     print(f"Model saved -> {MODEL_PATH}")
-
+    logger.info(f"Model saved -> {MODEL_PATH}")
 
 if __name__ == "__main__":
     main()

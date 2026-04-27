@@ -1,30 +1,26 @@
 from pathlib import Path
 import pandas as pd
 import joblib
-
-
+import numpy as np
 import psycopg2
 import psycopg2.extras
-import pandas as pd
-import numpy as np
-
-from sqlalchemy import create_engine
 import os
 import sys
 from dotenv import load_dotenv
+
 load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from src.data.Postgre_Request import PostgreRequest
-from src.config.logger_config import setup_logger 
+from src.config.logger_config import setup_logger
+
 logger = setup_logger(name="prediction")
 
 MODEL_PATH = Path("models/model.pkl")
-DATA_PATH = Path("data/processed/velib_dataset.csv")
 
 
 
 
-def appel_prediction( station) :
+def appel_prediction( station , h , m) :
     try :
         logger.info("Chargement modèle...")
         #print("1) Chargement modèle...")
@@ -45,9 +41,10 @@ def appel_prediction( station) :
         df["collected_at"] = pd.to_datetime(df["collected_at"])
 
         df["hour"] = df["collected_at"].dt.hour
-        h = df["collected_at"].dt.hour
-        m = df["collected_at"].dt.minute
+        #h = df["collected_at"].dt.hour
+        #m = df["collected_at"].dt.minute
 
+        
         df["hour_sin"] = np.sin(2 * np.pi * h / 24)
         df["hour_cos"] = np.cos(2 * np.pi * h / 24)
         df["min_sin"] = np.sin(2 * np.pi * m / 60)
@@ -94,7 +91,13 @@ def appel_prediction( station) :
 
 
 if __name__ == "__main__":
-    #main()
-    test = appel_prediction(11218807773)
-    for i in test :
-        print(f"reponce : {i} ")
+    table = []
+    for h in range(24):
+        for m in range(0, 60, 15):
+            
+            test = appel_prediction(11218807773, h, m)
+            table.append({"hour": f"{h}:{m}", "prediction": test})
+            print(f"{h}:{m} - {test}")
+
+    df = pd.DataFrame(table)
+    print(df)
