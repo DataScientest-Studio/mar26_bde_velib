@@ -159,3 +159,43 @@ class PostgreRequest:
         except Exception as e:
             print(f"Erreur lors de l'extraction : {e}")
             return None
+        
+    def extrat_postgres_data(id_station):
+
+
+        try:
+
+
+            query = f"""
+                SELECT 
+                    s.id_station, 
+                    s.num_docks_available, 
+                    s.num_bikes_mechanical, 
+                    s.num_bikes_ebike,
+                    (s.num_bikes_mechanical + s.num_bikes_ebike) as num_bikes_available,
+                    i.capacity, 
+                    s.inserted_at as collected_at,
+                    w.temp, 
+                    w.humidity, 
+                    w.wind_speed,
+                    w.description , 
+                    w.inserted_at ,
+                    w.city_name
+                FROM station_status_flat s
+                JOIN station_info_flat i ON s.id_station = i.id_station
+                LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
+                
+                WHERE  w.city_name  ='Paris' and  s.id_station ={id_station}
+                and s.inserted_at = (SELECT inserted_at from station_status_flat ORDER BY inserted_at DESC LIMIT 1)
+                
+
+            """
+            
+
+            df = pd.read_sql_query(query, pg_conn)
+            
+            return df
+
+        except Exception as e:
+            print(f"Erreur de connexion ou de requête : {e}")
+            return None

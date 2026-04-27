@@ -13,6 +13,8 @@ import sys
 from dotenv import load_dotenv
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from src.data.Postgre_Request import PostgreRequest
+from src.config.logger_config import setup_logger 
+logger = setup_logger()
 load_dotenv()
 
 MODEL_PATH = Path("models/model.pkl")

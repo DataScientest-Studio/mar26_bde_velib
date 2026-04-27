@@ -98,6 +98,8 @@ if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "minute"
 
     if mode == "minute":
+
+
         #print(f"🚲    {datetime.now(timezone.utc)} - Appel API  station_status ")
         logger.info(f"🚲 - Appel API  station_status ")
         main( "station_status" ,"https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/station_status.json" )
@@ -119,7 +121,7 @@ if __name__ == "__main__":
         csv_path = os.path.join(base_dir, "communes.csv")
         ville_meteo = pd.read_csv(csv_path)
 
-        for ville in ville_meteo :
+        for ville in ville_meteo["ville"]:
             #print(f"☀️    {datetime.now(timezone.utc)} - Appel API  medeo ")
             logger.info(f"☀️  - Appel API  medeo ")
             main( "medeo" ,f"https://api.openweathermap.org/data/2.5/weather?units=metric&lang=fr&q={ville}&appid={os.getenv("METEO_KEY")}" )
