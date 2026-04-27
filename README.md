@@ -33,6 +33,27 @@ Project Organization
     ├── src                <- Source code for use in this project.
     │   ├── __init__.py    <- Makes src a Python module
     │   │
+    │   ├── api            <- API sources
+    │   │   ├── __init__.py
+    │   │   ├── main.py            <- FastAPI entrypoint
+    │   │   ├── routers/           <- All API endpoints
+    │   │   │   ├── __init__.py
+    │   │   │   └── auth.py        <- Login and JWT token generation
+    │   │   │   ├── test.py        <- Temporary endpoint for JWT testing
+    │   │   │   └── health.py
+    │   │   ├── schemas/           <- Request/Response models
+    │   │   │   ├── __init__.py
+    │   │   │   └── auth.py
+    │   │   │   └── test.py        <- Temporary schema for JWT testing
+    │   │   ├── services/          <- All services
+    │   │   │   ├── __init__.py
+    │   │   │   └── user_service.py <- Will be remove when the authentification will be set on DB
+    │   │   ├── core/                <- Config, security
+    │   │   │   ├── __init__.py
+    │   │   │   ├── config.py
+    │   │   │   └── security.py    
+    │   │   └── dependencies.py
+    │   │
     │   ├── data           <- Scripts to download or generate data
     │   │   └── make_dataset.py
     │   │
