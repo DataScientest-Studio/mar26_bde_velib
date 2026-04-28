@@ -63,7 +63,7 @@ def insert_mongo(client: pymongo.MongoClient, data: dict, table_name: str) -> No
                 r["_ingested_at"] = datetime.now(timezone.utc)
             
             result = col.insert_many(all_records)
-            print(f"✅    {datetime.now(timezone.utc)} -  {table_name} : {len(result.inserted_ids)} records insérés.")
+            print(f"✅    {datetime.now(timezone.utc)} -  {table_name} : {len(result.inserted_ids)} lignes insérées.")
         else:
             print(f"⚠️    {datetime.now(timezone.utc)} - {table_name} : Reçu mais aucun trajet (Journey) trouvé dedans.")
 
