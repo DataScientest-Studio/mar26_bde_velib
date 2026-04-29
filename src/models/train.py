@@ -1,70 +1,27 @@
 from pathlib import Path
 import pandas as pd
 import joblib
-from sqlalchemy import create_engine
+import numpy as np
+import os
+import sys
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
-import psycopg2
-import numpy as np
-
-import os
 from dotenv import load_dotenv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from src.data.Postgre_Request import PostgreRequest
+from src.config.logger_config import setup_logger
+
+logger = setup_logger()
 load_dotenv()
 
-
-DATA_PATH = Path("data/processed/velib_dataset.csv")
 MODEL_PATH = Path("models/model.pkl")
-
-
-def extract_postgres_data():
-    # Construction de l'URL de connexion (URI)
-    user = os.getenv("PG_LOGIN")
-    password = os.getenv("PG_PASSWORD")
-    host = os.getenv("PG_HOST")
-    port = os.getenv("PG_PORT")
-    dbname = "db_velib"
-    
-    # Format : postgresql://user:password@host:port/dbname
-    connection_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
-    
-    try:
-        # Création du moteur SQLAlchemy
-        engine = create_engine(connection_string)
-
-        query = """
-            SELECT 
-                s.station_id, 
-                s.num_docks_available, 
-                s.num_bikes_mechanical, 
-                s.num_bikes_ebike,
-                (s.num_bikes_mechanical + s.num_bikes_ebike) as num_bikes_available,
-                i.capacity, 
-                s.inserted_at as collected_at,
-                w.temp, 
-                w.humidity, 
-                w.wind_speed,
-                w.description , 
-                w.inserted_at 
-            FROM station_status_flat s
-            JOIN station_info_flat i ON s.station_id = i.station_id
-            LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at)  ;
-        """
-        
-        
-        with engine.connect() as conn:
-            df = pd.read_sql_query(query, conn)
-        return df
-
-    except Exception as e:
-        print(f"Erreur lors de l'extraction : {e}")
-        return None
-
 
 
 def Model_RandomForest ( X_train, X_test, y_train, y_test ) :
 
-    model = RandomForestRegressor(n_estimators=100, random_state=42 , max_depth=30 , n_jobs= 10 , verbose= 1 )
+    model = RandomForestRegressor(n_estimators=100, random_state=42 , max_depth=20 , n_jobs= 8 , verbose= 1 )
     model.fit(X_train, y_train)
     print(f"Score train : {model.score(X_train, y_train):.4f}")
     print(f"Score test  : {model.score(X_test, y_test):.4f}")
@@ -78,14 +35,15 @@ def Model_RandomForest ( X_train, X_test, y_train, y_test ) :
 
 
 
-
-
 def main():
-    print("1) Chargement des données...")
+    logger.info("Lancement entrainement du modèle...")
+    logger.info("Chargement des données...")
+    #print("1) Chargement des données...")
 
     
     #df = pd.read_csv(DATA_PATH)
-    df = extract_postgres_data()
+    #df = extract_postgres_data()
+    df = PostgreRequest.extract_postgres_data_training()
 
     print(f"   shape = {df.shape}")
     print(f"   colonnes = {list(df.columns)}")
@@ -93,7 +51,8 @@ def main():
     if df.empty:
         raise ValueError("Dataset vide")
 
-    print("2) Feature engineering...")
+    logger.info("Feature engineering...")
+    #print("2) Feature engineering...")
 
 
     weather_map = {
@@ -130,25 +89,26 @@ def main():
     df["min_cos"] = np.cos(2 * np.pi * m / 60)
 
 
-
-    print("3) Préparation des variables...")
+    logger.info("Préparation des variables...")
+    #print("3) Préparation des variables...")
     df = df[df["capacity"] > 0].copy()
     df["target_pct"] = df["num_bikes_available"] / df["capacity"]
 
     #X = df[["station_id", "hour", "minute" , "day_of_week", 'temp', "humidity", "wind_speed", "description_code", "capacity" ]]
 
-    X = df[ [ "station_id", "hour_sin","hour_cos", "min_sin", "min_cos", "day_of_week", "temp", "humidity","wind_speed", "description_code","capacity" ] ]
+    X = df[ [ "id_station", "hour_sin","hour_cos", "min_sin", "min_cos", "day_of_week", "temp", "humidity","wind_speed", "description_code","capacity" ] ]
     y = df["target_pct"]
 
 
-
+    
     print(f"   X.shape = {X.shape}")
-
+    logger.info("Entraînement..")
     print("4) Entraînement...")
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
     model = Model_RandomForest(X_train, X_test, y_train, y_test )
 
+    logger.info("Sauvegarde modèle...")
     print("5) Sauvegarde modèle...")
 
 
@@ -156,7 +116,7 @@ def main():
     joblib.dump(model, MODEL_PATH)
 
     print(f"Model saved -> {MODEL_PATH}")
-
+    logger.info(f"Model saved -> {MODEL_PATH}")
 
 if __name__ == "__main__":
     main()
