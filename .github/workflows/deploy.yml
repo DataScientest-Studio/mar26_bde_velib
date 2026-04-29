@@ -32,6 +32,10 @@ jobs:
           ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
           EOF
 
+          ls -la .env
+          echo "--- Contenu (masqué) ---"
+          wc -l .env
+
       - name: Copie du .env vers le VPS
         uses: appleboy/scp-action@v0.1.7
         with:
