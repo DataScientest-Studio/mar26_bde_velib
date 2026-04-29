@@ -1,0 +1,43 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Génération du fichier .env
+        run: |
+          cat > .env <<EOF
+          MONGO_URL1="${{ secrets.MONGO_URL1 }}"
+          MONGO_URL="${{ secrets.MONGO_URL }}"
+
+          METEO_KEY="${{ secrets.METEO_KEY }}"
+          RER_KEY="${{ secrets.RER_KEY }}"
+
+          PG_LOGIN="${{ secrets.PG_LOGIN }}"
+          PG_PASSWORD="${{ secrets.PG_PASSWORD }}"
+          PG_HOST=${{ secrets.PG_HOST }}
+          PG_PORT=${{ secrets.PG_PORT }}
+
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+          EOF
+
+      - name: Copie du .env vers le VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: ".env"
+          target: "/opt/docker/stack/python/workspace/"
+
