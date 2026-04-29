@@ -47,3 +47,6 @@ jobs:
             EOF
             chmod 600 .env
 
+            # 3. Redémarrage du conteneur
+            cd /opt/docker/stack
+            sudo docker compose restart python
