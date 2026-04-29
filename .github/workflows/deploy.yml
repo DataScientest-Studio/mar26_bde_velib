@@ -14,35 +14,36 @@ jobs:
       - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: Génération du fichier .env
-        run: |
-          cat > .env <<EOF
-          MONGO_URL1="${{ secrets.MONGO_URL1 }}"
-          MONGO_URL="${{ secrets.MONGO_URL }}"
-
-          METEO_KEY="${{ secrets.METEO_KEY }}"
-          RER_KEY="${{ secrets.RER_KEY }}"
-
-          PG_LOGIN="${{ secrets.PG_LOGIN }}"
-          PG_PASSWORD="${{ secrets.PG_PASSWORD }}"
-          PG_HOST=${{ secrets.PG_HOST }}
-          PG_PORT=${{ secrets.PG_PORT }}
-
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
-          EOF
-
-          ls -la .env
-          echo "--- Contenu (masqué) ---"
-          wc -l .env
-
-      - name: Copie du .env vers le VPS
-        uses: appleboy/scp-action@v0.1.7
+      - name: Création du .env et déploiement sur le VPS
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: ".env"
-          target: "/opt/docker/stack/python/workspace/"
-          overwrite: true
+          script: |
+
+            # 1. Pull du repo dans workspace
+            cd /opt/docker/stack/python/workspace
+            if [ -d ".git" ]; then
+              echo "Repo existant → git pull"
+              git pull origin main
+            else
+              echo "Première fois → git clone"
+              git clone https://github.com/${{ github.repository }}.git .
+            fi
+
+            # 2. Génération du .env
+            cat > .env <<EOF
+            MONGO_URL1="${{ secrets.MONGO_URL1 }}"
+            MONGO_URL="${{ secrets.MONGO_URL }}"
+            METEO_KEY="${{ secrets.METEO_KEY }}"
+            RER_KEY="${{ secrets.RER_KEY }}"
+            PG_LOGIN="${{ secrets.PG_LOGIN }}"
+            PG_PASSWORD="${{ secrets.PG_PASSWORD }}"
+            PG_HOST=${{ secrets.PG_HOST }}
+            PG_PORT=${{ secrets.PG_PORT }}
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+            EOF
+            chmod 600 .env
 
