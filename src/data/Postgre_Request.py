@@ -199,3 +199,25 @@ class PostgreRequest:
         except Exception as e:
             print(f"Erreur de connexion ou de requête : {e}")
             return None
+
+
+    def extrat_info_station(idstation) :
+
+            try:
+
+
+                query = f"""
+                    SELECT * FROM station_info_flat 
+                    where id_station = {idstation}
+                    
+
+                """
+                
+
+                df = pd.read_sql_query(query, pg_conn)
+                
+                return df
+
+            except Exception as e:
+                print(f"Erreur de connexion ou de requête : {e}")
+                return None
