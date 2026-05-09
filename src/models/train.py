@@ -61,7 +61,7 @@ def main():
             "partiellement nuageux" :2 ,
             "couvert": 3 ,
             "nuageux" : 4 ,
-            "averses" : 5,
+            "légère pluie" : 5,
             "pluie" : 6 ,
             "orage" : 7 ,            
             "neige" : 8 ,

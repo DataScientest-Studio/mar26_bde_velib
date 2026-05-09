@@ -20,11 +20,12 @@ MODEL_PATH = Path("models/model.pkl")
 
 
 
-def appel_prediction( station , h , m) :
+def appel_prediction(model , station , h , m) :
     try :
-        logger.info("Chargement modèle...")
+        #logger.info("Chargement modèle...")
         #print("1) Chargement modèle...")
-        model = joblib.load(MODEL_PATH)
+        #model = joblib.load(MODEL_PATH)
+
 
         logger.info("Chargement données...")
         df = PostgreRequest.extrat_postgres_data(station)
@@ -92,12 +93,16 @@ def appel_prediction( station , h , m) :
 
 if __name__ == "__main__":
     table = []
-    for h in range(24):
+
+    model = joblib.load(MODEL_PATH)
+
+
+    for h in range(21,24):
         for m in range(0, 60, 15):
             
-            test = appel_prediction(11218807773, h, m)
+            test = appel_prediction(model , 11218807773, h, m)
             table.append({"hour": f"{h}:{m}", "prediction": test})
             print(f"{h}:{m} - {test}")
 
     df = pd.DataFrame(table)
-    print(df)
+    df.head()
