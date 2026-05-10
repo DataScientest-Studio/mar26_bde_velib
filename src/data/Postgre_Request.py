@@ -5,6 +5,8 @@ import psycopg2
 from sqlalchemy import create_engine
 import pandas as pd
 
+
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from src.config.logger_config import setup_logger 
 logger = setup_logger()
@@ -148,8 +150,10 @@ class PostgreRequest:
                 FROM station_status_flat s
                 JOIN station_info_flat i ON s.id_station = i.id_station
                 LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
-                WHERE  w.city_name  ='Paris'  ;
-            """
+                WHERE  w.city_name  ='Paris'  
+                
+                ORDER BY RANDOM() LIMIT 25000000; """    #LIMIT 30000000 ;
+            
             
             
             with engine.connect() as conn:
@@ -166,6 +170,8 @@ class PostgreRequest:
         try:
 
 
+
+                
             query = f"""
                 SELECT 
                     s.id_station, 
@@ -185,7 +191,7 @@ class PostgreRequest:
                 JOIN station_info_flat i ON s.id_station = i.id_station
                 LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
                 
-                WHERE  w.city_name  ='Paris' and  s.id_station ={id_station}
+                WHERE  w.city_name  ='Paris' and  s.id_station in {id_station}
                 and s.inserted_at = (SELECT inserted_at from station_status_flat ORDER BY inserted_at DESC LIMIT 1)
                 
 
@@ -221,3 +227,38 @@ class PostgreRequest:
             except Exception as e:
                 print(f"Erreur de connexion ou de requête : {e}")
                 return None
+            
+
+            
+    def extrat_info_proximiter(id_arret_transport=None, nom_arret_transport=None):
+        try:
+            if id_arret_transport is None and nom_arret_transport is None:
+                print("Erreur : il faut au moins un paramètre")
+                return None
+
+            
+            if id_arret_transport == '':
+                id_arret_transport = None
+
+            
+            if id_arret_transport is not None and nom_arret_transport is not None:
+                where = "arrname = %(nom)s OR transport_stops.id_transport_stop = %(id)s"
+            elif id_arret_transport is not None:
+                where = f"transport_stops.id_transport_stop = {id_arret_transport}"
+            else:
+                where = f"arrname = '{nom_arret_transport}'"
+
+            query = f"""
+                SELECT * FROM proximity 
+                JOIN station_info_flat ON proximity.id_station = station_info_flat.id_station
+                JOIN transport_stops ON proximity.id_transport_stop = transport_stops.id_transport_stop
+                WHERE {where}
+            """
+
+            df = pd.read_sql_query(query, pg_conn)
+
+            return df
+
+        except Exception as e:
+            print(f"Erreur de connexion ou de requête : {e}")
+            return None
