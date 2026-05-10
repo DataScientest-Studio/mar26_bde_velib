@@ -191,7 +191,7 @@ class PostgreRequest:
                 JOIN station_info_flat i ON s.id_station = i.id_station
                 LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
                 
-                WHERE  w.city_name  ='Paris' and  s.id_station in {id_station}
+                WHERE  w.city_name  ='Paris' and  s.id_station in ({id_station})
                 and s.inserted_at = (SELECT inserted_at from station_status_flat ORDER BY inserted_at DESC LIMIT 1)
                 
 
@@ -207,14 +207,14 @@ class PostgreRequest:
             return None
 
 
-    def extrat_info_station(idstation) :
+    def extrat_info_station(id_station) :
 
             try:
 
 
                 query = f"""
                     SELECT * FROM station_info_flat 
-                    where id_station = {idstation}
+                    where id_station in   ({id_station})
                     
 
                 """
