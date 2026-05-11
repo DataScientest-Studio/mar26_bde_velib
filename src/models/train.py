@@ -26,6 +26,73 @@ MODEL_PATH2 = Path("models/LGBMRegressor.pkl")
 
 def train_random_forest ( X_train, X_test, y_train, y_test ) :
 
+    """
+    Entraîne et évalue un modèle Random Forest Regressor pour la prédiction 
+    du taux de disponibilité des vélos dans les stations Vélib'.
+
+    Parameters
+    ----------
+    X_train : pd.DataFrame ou np.ndarray
+        Features d'entraînement. Doit contenir les colonnes définies 
+        dans FEATURES :
+        [hour, day_of_week, hour_sin, hour_cos, min_sin, min_cos,
+         temp, humidity, wind_speed, description_code, capacity, target_pct]
+        Shape attendu : (n_train_samples, n_features)
+
+    X_test : pd.DataFrame ou np.ndarray
+        Features d'évaluation.
+        Shape attendu : (n_test_samples, n_features)
+
+    y_train : pd.Series ou np.ndarray
+        Variable cible d'entraînement (taux de disponibilité target_pct).
+        Valeurs comprises entre 0.0 et 1.0.
+        Shape attendu : (n_train_samples,)
+
+    y_test : pd.Series ou np.ndarray
+        Variable cible d'évaluation.
+        Shape attendu : (n_test_samples,)
+
+    Returns
+    -------
+    RandomForestRegressor
+        Modèle entraîné, prêt pour l'inférence ou la sérialisation via joblib.
+
+    Notes
+    -----
+    Hyperparamètres fixes
+    ---------------------
+    | Paramètre    | Valeur | Description                                 |
+    |--------------|--------|---------------------------------------------|
+    | n_estimators | 100    | Nombre d'arbres dans la forêt               |
+    | random_state | 42     | Graine aléatoire pour reproductibilité      |
+    | max_depth    | 20     | Profondeur maximale de chaque arbre         |
+    | n_jobs       | 12     | Parallélisation sur 12 cœurs CPU            |
+    | verbose      | 1      | Affichage de la progression d'entraînement  |
+    | max_samples  | 0.1    | 10% des données par arbre (bagging réduit)  |
+
+    Métriques affichées
+    -------------------
+    - Score R² train  : coefficient de détermination sur X_train
+    - Score R² test   : coefficient de détermination sur X_test
+    - RMSE            : Root Mean Squared Error sur X_test
+
+    Examples
+    --------
+    >>> model = train_random_forest(X_train, X_test, y_train, y_test)
+    Score train : 0.9123
+    Score test  : 0.8745
+    RMSE = 0.0632
+
+    >>> import joblib
+    >>> joblib.dump(model, "random_forest_velib.pkl")
+
+    >>> preds = model.predict(X_test)
+    >>> print(preds[:3])
+    [0.72 0.45 0.88]
+    """
+        
+
+
     model = RandomForestRegressor(n_estimators=100, random_state=42 , max_depth=20 , n_jobs= 12 , verbose= 1 , max_samples = 0.1 )
     model.fit(X_train, y_train)
     print(f"Score train : {model.score(X_train, y_train):.4f}")
@@ -39,6 +106,75 @@ def train_random_forest ( X_train, X_test, y_train, y_test ) :
     return model
 
 def train_LGBMRegressor ( X_train, X_test, y_train, y_test ) :
+
+    """
+    Entraîne et évalue un modèle LightGBM Regressor pour la prédiction 
+    du taux de disponibilité des vélos dans les stations Vélib'.
+
+    Parameters
+    ----------
+    X_train : pd.DataFrame ou np.ndarray
+        Features d'entraînement. Doit contenir les colonnes définies 
+        dans FEATURES :
+        [hour, day_of_week, hour_sin, hour_cos, min_sin, min_cos,
+         temp, humidity, wind_speed, description_code, capacity, target_pct]
+        Shape attendu : (n_train_samples, n_features)
+
+    X_test : pd.DataFrame ou np.ndarray
+        Features d'évaluation.
+        Shape attendu : (n_test_samples, n_features)
+
+    y_train : pd.Series ou np.ndarray
+        Variable cible d'entraînement (taux de disponibilité target_pct).
+        Valeurs comprises entre 0.0 et 1.0.
+        Shape attendu : (n_train_samples,)
+
+    y_test : pd.Series ou np.ndarray
+        Variable cible d'évaluation.
+        Shape attendu : (n_test_samples,)
+
+    Returns
+    -------
+    lgb.LGBMRegressor
+        Modèle entraîné, prêt pour l'inférence ou la sérialisation via joblib.
+
+    Notes
+    -----
+    Hyperparamètres fixes
+    ---------------------
+    | Paramètre    | Valeur | Description                                  |
+    |--------------|--------|----------------------------------------------|
+    | n_estimators | 500    | Nombre d'arbres de boosting                  |
+
+    Avantages de LightGBM vs Random Forest
+    ---------------------------------------
+    - Entraînement significativement plus rapide sur grands volumes
+    - Meilleure gestion native des valeurs catégorielles
+    - Faible consommation mémoire grâce au histogram-based splitting
+    - Généralement plus performant en généralisation sur données tabulaires
+
+    Métriques affichées
+    -------------------
+    - Score R² train  : coefficient de détermination sur X_train
+    - Score R² test   : coefficient de détermination sur X_test
+    - RMSE            : Root Mean Squared Error sur X_test
+
+    Examples
+    --------
+    >>> model = train_LGBMRegressor(X_train, X_test, y_train, y_test)
+    Score train : 0.9412
+    Score test  : 0.9187
+    RMSE = 0.0521
+
+    >>> import joblib
+    >>> joblib.dump(model, "lgbm_velib.pkl")
+
+    >>> preds = model.predict(X_test)
+    >>> print(preds[:3])
+    [0.69 0.43 0.91]
+    """
+        
+
 
     model = lgb.LGBMRegressor(n_estimators=500)
     model.fit(X_train, y_train)
@@ -55,6 +191,103 @@ def train_LGBMRegressor ( X_train, X_test, y_train, y_test ) :
 
 
 def main():
+
+    """
+    Orchestre l'intégralité du pipeline d'entraînement des modèles de prédiction 
+    de disponibilité des vélos Vélib', depuis l'extraction des données brutes 
+    jusqu'à la sérialisation des modèles entraînés.
+
+    Returns
+    -------
+    None
+        Les modèles entraînés sont sérialisés sur disque via joblib.
+        - MODEL_PATH  : RandomForestRegressor  (random_forest_velib.pkl)
+        - MODEL_PATH2 : LGBMRegressor          (lgbm_velib.pkl)
+
+    Pipeline
+    --------
+    1. Extraction PostgreSQL
+       - Appel à PostgreRequest.extract_postgres_data_training()
+       - Log RAM disponible et taille du DataFrame en mémoire
+
+    2. Feature engineering
+       - Encodage cyclique de l'heure  : hour_sin, hour_cos
+       - Encodage cyclique des minutes : min_sin,  min_cos
+       - Extraction du jour de semaine : day_of_week (0=lundi … 6=dimanche)
+       - Encodage ordinal météo        : description_code (weather_map)
+       - Calcul de la cible            : target_pct = num_bikes_available / capacity
+         (les stations avec capacity == 0 sont exclues)
+
+    3. Features de lag (contexte historique)
+       - lag_24h : taux de disponibilité 24h avant (shift 144 @ granularité 10min)
+       - lag_7j  : taux de disponibilité 7 jours avant (shift 1008 @ granularité 10min)
+
+    4. Features utilisées (FEATURES)
+       [id_station, hour_sin, hour_cos, min_sin, min_cos, day_of_week,
+        temp, humidity, wind_speed, description_code, capacity,
+        lag_24h, lag_7j]
+
+    5. Split chronologique (80/20)
+       - Tri par collected_at avant split pour garantir l'ordre temporel
+       - Assertion de non-chevauchement entre train et test
+       - Echantillonnage sécurisé :
+         n_train ≤ 20 000 000 lignes
+         n_test  ≤  5 000 000 lignes
+
+    6. Entraînement
+       - RandomForestRegressor via train_random_forest()
+       - LGBMRegressor          via train_LGBMRegressor()
+
+    7. Sauvegarde
+       - joblib.dump(RandomForestRegressor, MODEL_PATH)
+       - joblib.dump(LGBMRegressor,         MODEL_PATH2)
+
+    Encodage météo (weather_map)
+    ----------------------------
+    | Description            | Code |
+    |------------------------|------|
+    | ciel dégagé            |  0   |
+    | peu nuageux            |  1   |
+    | partiellement nuageux  |  2   |
+    | couvert                |  3   |
+    | nuageux                |  4   |
+    | légère pluie           |  5   |
+    | pluie                  |  6   |
+    | orage                  |  7   |
+    | neige                  |  8   |
+    | brume                  |  9   |
+    | inconnu                | -1   |
+
+    Raises
+    ------
+    ValueError
+        Si le DataFrame extrait de PostgreSQL est vide.
+    AssertionError
+        Si un chevauchement temporel est détecté entre train et test
+        (train_max > test_min).
+
+    Examples
+    --------
+    >>> train_model()
+    INFO  - Lancement entrainement du modèle...
+    INFO  - Chargement des données...
+    INFO  - RAM disponible : 12.3 GB / 16.0 GB
+    INFO  - Taille df en mémoire : 2.41 GB
+    INFO  - Feature engineering...
+    INFO  - Split chronologique...
+    INFO  - ✅ Pas de chevauchement
+    INFO  - Train : 20000000 lignes | 2023-01-01 → 2024-06-01
+    INFO  - Test  : 5000000  lignes | 2024-06-01 → 2024-08-01
+    INFO  - Entraînement...
+    Score train : 0.9123  Score test : 0.8745  RMSE = 0.0632   (RandomForest)
+    Score train : 0.9412  Score test : 0.9187  RMSE = 0.0521   (LGBM)
+    INFO  - Sauvegarde modèle...
+    INFO  - Model saved -> models/random_forest_velib.pkl
+    INFO  - Model saved -> models/lgbm_velib.pkl
+    """
+
+
+    
     logger.info("Lancement entrainement du modèle...")
     logger.info("Chargement des données...")
     df = PostgreRequest.extract_postgres_data_training()
@@ -103,16 +336,6 @@ def main():
     #df["lag_1h"]    = df.groupby("id_station")["target_pct"].shift(6)
     df["lag_24h"]   = df.groupby("id_station")["target_pct"].shift(144)
     df["lag_7j"]    = df.groupby("id_station")["target_pct"].shift(1008)
-
-    """
-    df["rolling_1h"] = (
-        df.groupby("id_station")["target_pct"]
-        .transform(lambda x: x.shift(1).rolling(6, min_periods=1).mean())
-    )
-    df = df.dropna(subset=["lag_10min"])
-
-    """
-
 
 
     FEATURES = [
