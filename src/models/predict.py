@@ -41,6 +41,7 @@ def appel_prediction(model , station , h , m) :
 
         logger.info("Chargement données...")
         df = PostgreRequest.extrat_postgres_data(station)
+        
 
         print(f"   colonnes = {list(df.columns)}")
 
@@ -127,102 +128,16 @@ def prediction_meteo( longetude , latitude  , heures , date ) :
                 resultats.append({         
                     'date': date , 
                     'heure' : heure,             
-                    'temp': prediction['main']['temp'],         
+                    'temp': prediction['main']['temp'], 
+                    'humidity': prediction['main']['humidity'],   
+                    'wind_speed': prediction['wind']['speed'],      
                     'description': prediction['weather'][0]['description']
                 })
 
     return resultats
 
-def prediction_station( idstation , heures , date ) :
 
-    if isinstance(idstation, int):
-        idstation = [idstation]
-
-    meteos = []
-    print( f" station {idstation}")
-    
-
-    for station in idstation :
-        print( f" station {station}")
-        station = PostgreRequest.extrat_info_station(station)
-        meteos.append( prediction_meteo(station["longitude"][0] , station["latitude"][0] , heures , date  ) )
-
-    print(f"{station}  latitude =  {station["latitude"][0]}"  )
-    print(f"meteo  {meteos}")
-
-    try :
-
-        logger.info("Chargement données...")
-
-
-         
-        """
-        for meteo in meteos :
-
-            logger.info("Feature engineering...")
-
-            df["collected_at"] = pd.to_datetime(df["collected_at"])
-
-            df["hour"] = df["collected_at"].dt.hour
-
-            h = int(meteo['heure'].split(':')[0])
-            m = int(meteo['heure'].split(':')[1])
-            print( f" h {h} m {m}")
-
-            df["hour_sin"] = np.sin(2 * np.pi * h / 24)
-            df["hour_cos"] = np.cos(2 * np.pi * h / 24)
-            df["min_sin"] = np.sin(2 * np.pi * m / 60)
-            df["min_cos"] = np.cos(2 * np.pi * m / 60)
-
-
-            df["target_pct"] = df["num_bikes_available"] / df["capacity"]
-            df["lag_24h"]   = df.groupby("id_station")["target_pct"].shift(144)
-            df["lag_7j"]    = df.groupby("id_station")["target_pct"].shift(1008)
-
-
-
-
-            df["day_of_week"] = df["collected_at"].dt.dayofweek
-
-            weather_map = {
-                "ciel dégagé": 0,
-                "peu nuageux" : 1 ,
-                "partiellement nuageux" :2 ,
-                "couvert": 3 ,
-                "nuageux" : 4 ,
-                "averses" : 5,
-                "pluie" : 6 ,
-                "orage" : 7 ,            
-                "neige" : 8 ,
-                "brume" : 9
-                }
-
-            df['description_code'] = df['description'].map(weather_map).fillna(-1)
-            df['description_code'].head()
-
-            logger.info("Prédiction...")
-            #print("4) Prédiction...")
-
-            X = df[FEATURES]
-            preds =  np.round( model.predict(X) * df['capacity'] )
-            sortie_prediction.append ( {
-                'id_station' : idstation ,
-                'heure' :meteo['heure']  ,
-                'date' : meteo['date'] ,
-                'prediction_nb_velo' : int(preds[0])
-
-            })
-            df["prediction"] = preds
-        
-        print( f"sortie_prediction  {sortie_prediction}")
-        return sortie_prediction
-        """
-    except Exception as e:
-        logger.error( f" Ereeur : {e} ")
-
-
-
-def prediction_station2(idstation, heures, date):
+def prediction_station(idstation, heures, date):
 
     if isinstance(idstation, int):
         idstation = [idstation]
@@ -245,7 +160,9 @@ def prediction_station2(idstation, heures, date):
     # 2️⃣ Données Postgres (1 seule requête)
     # ============================
     ids_str = ','.join(map(str, idstation))
-    postgres_data = PostgreRequest.extrat_postgres_data(ids_str)
+    #postgres_data = PostgreRequest.extrat_postgres_data(ids_str)
+    postgres_data = PostgreRequest.extrat_postgres_data_pre(ids_str)
+     
 
     if not isinstance(postgres_data, pd.DataFrame):
         df_postgres = pd.DataFrame(postgres_data)
@@ -298,16 +215,21 @@ def prediction_station2(idstation, heures, date):
     # 🔗 Fusion 2 : (station + postgres) + meteo
     # ============================
     try:
+
+
+
         df_final = df_fusion_1.merge(
             df_meteo_all,
             on="id_station",
-            how="outer",
+            how="inner",
             suffixes=("", "_meteo")
         )
         print("✅ Merge + meteo réussi")
     except Exception as e:
         print(f"⚠️ Merge + meteo échoué ({e}), cross join...")
         df_final = df_fusion_1.merge(df_meteo_all, how="cross")
+
+
 
     print(f"\n{'='*50}")
     print(f"✅ DataFrame FINAL : {df_final.shape[0]} lignes x {df_final.shape[1]} colonnes")
@@ -325,7 +247,7 @@ def prediction_station2(idstation, heures, date):
         df_final["collected_at"] = pd.to_datetime(df_final["collected_at"])
         df_final["hour"]         = df_final["collected_at"].dt.hour
         df_final["day_of_week"]  = df_final["collected_at"].dt.dayofweek
-
+        
         df_final["hour_meteo"] = df_final["heure"].apply(lambda x: int(str(x).split(':')[0]))
         df_final["min_meteo"]  = df_final["heure"].apply(lambda x: int(str(x).split(':')[1]))
 
@@ -335,8 +257,8 @@ def prediction_station2(idstation, heures, date):
         df_final["min_cos"]  = np.cos(2 * np.pi * df_final["min_meteo"]  / 60)
 
         df_final["target_pct"] = df_final["num_bikes_available"] / df_final["capacity"]
-        df_final["lag_24h"]    = df_final.groupby("id_station")["target_pct"].shift(144)
-        df_final["lag_7j"]     = df_final.groupby("id_station")["target_pct"].shift(1008)
+        #df_final["lag_24h"]    = df_final.groupby("id_station")["target_pct"].shift(144)
+        #df_final["lag_7j"]     = df_final.groupby("id_station")["target_pct"].shift(1008)
 
         weather_map = {
             "ciel dégagé"           : 0,
@@ -397,32 +319,15 @@ def prediction_metro(id_arret_transport, nom_arret_transport, heures, date):
 
         metro_filtre = metro_filtre.iloc[:, 0]
 
-
-
-    return  prediction_station2(metro_filtre, heures, date) 
+    return  prediction_station(metro_filtre, heures, date) 
 
 
 
 
 if __name__ == "__main__":
 
-    table = []
-    """
-
-    model = joblib.load(MODEL_PATH)
-
-    for h in range(21,24):
-        for m in range(0, 60, 15):
-
-            test = appel_prediction(model , 11218807773, h, m)
-            table.append({"hour": f"{h}:{m}", "prediction": test})
-            print(f"{h}:{m} - {test}")
-
-    df = pd.DataFrame(table)
-    df.head()
-
-    """
-    heures = [  "15:00", "18:00" , "20:00"]
-    prediction_station2( 11218807773 , heures , "2026-05-11")
+  
+    heures = [  "23:00", "18:00" , "20:00"]
+    #prediction_station( 11218807773 , heures , "2026-05-11")
     prediction_metro('' , "Cadet" , heures , "2026-05-11")
 
