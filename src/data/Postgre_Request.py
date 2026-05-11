@@ -1357,4 +1357,4 @@ class PostgreRequest:
             return None
                 
 
-print(PostgreRequest.extrat_info_etat_api())
+
