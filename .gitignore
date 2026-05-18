@@ -92,4 +92,6 @@ target/
 bde_velib/
 
 #Model
+/models/
 models/model.pkl
+
