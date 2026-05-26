@@ -1213,15 +1213,15 @@ class PostgreRequest:
 
             query = f"""
                     SELECT 
-                    station_info_flat.id_station , station_info_flat.name , station_info_flat.latitude , station_info_flat.longitude , 
-                    transport_stops.arrname ,distance
+                    station_info_flat.id_station, station_info_flat.name, station_info_flat.latitude, station_info_flat.longitude, 
+                    transport_stops.arrname, distance, station_info_flat.capacity
 
                     FROM proximity 
                     JOIN station_info_flat ON proximity.id_station = station_info_flat.id_station
                     JOIN transport_stops ON proximity.id_transport_stop = transport_stops.id_transport_stop
                         
                     {condition}       
-                    ORDER BY station_info_flat.id_station
+                    ORDER BY station_info_flat.name, distance ASC
                         
 
                 """
@@ -1323,29 +1323,41 @@ class PostgreRequest:
             condition = ""
 
             if id_station == None :
-                condition = ""
+                condition1 = ""
+                condition2 = ""
             else : 
-                condition = f"and  s.id_station  = {id_station}"
+                condition1 = f"WHERE id_station = {id_station}"
+                condition2 = f"WHERE s.id_station = {id_station}"
 
-            query = f"""SELECT s.id_station, 
-                        (s.num_bikes_mechanical + s.num_bikes_ebike) as nb_velo,
-                        s.num_bikes_mechanical as nb_velo_classique , 
-                        s.num_bikes_ebike as nb_velo_electrique ,
-                        s.num_docks_available as nb_place_libre ,
-                        i.capacity as capacite_totale , 
-                        s.inserted_at as derniere_maj,
-                        w.description , 
-                        w.temp as temperature , 
-                        w.humidity as humidite , 
-                        w.wind_speed vent 
-                    
+            query = f"""
+                    WITH last_update AS (
+                        SELECT MAX(inserted_at) as inserted_at
+                        FROM station_status_flat
+                        {condition1}
+                    ),
+                    target_hour AS (
+                        SELECT DATE_TRUNC('hour', inserted_at) as hour_trunc
+                        FROM last_update
+                    )
+                    SELECT 
+                        s.id_station, 
+                        (s.num_bikes_mechanical + s.num_bikes_ebike)  AS nb_velo,
+                        s.num_bikes_mechanical                         AS nb_velo_classique,
+                        s.num_bikes_ebike                              AS nb_velo_electrique,
+                        s.num_docks_available                          AS nb_place_libre,
+                        i.capacity                                     AS capacite_totale, 
+                        s.inserted_at                                  AS derniere_maj,
+                        w.description, 
+                        w.temp                                         AS temperature, 
+                        w.humidity                                     AS humidite, 
+                        w.wind_speed                                   AS vent 
                     FROM station_status_flat s
+                    JOIN last_update lu      ON s.inserted_at = lu.inserted_at
                     JOIN station_info_flat i ON s.id_station = i.id_station
-                    LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
-                        
-                    WHERE  w.city_name  ='Paris'   {condition}
-                    and s.inserted_at = (SELECT inserted_at from station_status_flat ORDER BY inserted_at DESC LIMIT 1)
-                        
+                    LEFT JOIN meteo w        ON w.inserted_at >= (SELECT hour_trunc FROM target_hour)
+                                            AND w.inserted_at  < (SELECT hour_trunc FROM target_hour) + INTERVAL '1 hour'
+                                            AND w.city_name = 'Paris'
+                    {condition2};    
                     """
 
             df = pd.read_sql_query(query, pg_conn)
