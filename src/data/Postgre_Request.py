@@ -605,7 +605,7 @@ class PostgreRequest:
                 ORDER BY RANDOM() LIMIT 25000000; """    #LIMIT 30000000 ;
             
             
-            
+            conn = get_pg_conn()
             with engine.connect() as conn:
                 df = pd.read_sql_query(query, conn)
             return df
@@ -739,7 +739,7 @@ class PostgreRequest:
             """
             
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
             
             return df
 
@@ -885,7 +885,7 @@ class PostgreRequest:
 
             """
             
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
             
             return df
 
@@ -978,7 +978,7 @@ class PostgreRequest:
                 """
                 
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
                 
             return df
 
@@ -1116,7 +1116,7 @@ class PostgreRequest:
                 WHERE {where}
             """
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
 
             return df
 
@@ -1232,7 +1232,7 @@ class PostgreRequest:
 
 
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
                     
             return df
 
@@ -1352,7 +1352,7 @@ class PostgreRequest:
                         
                     """
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
                     
             return df
 
