@@ -1,15 +1,16 @@
 import pytest
+import sys
+from unittest.mock import patch, MagicMock
+
+sys.modules['psycopg2'] = MagicMock()
+
+
 from fastapi.testclient import TestClient
 from src.api.main import app
 from src.api.dependencies import get_current_user
 from src.api.schemas.auth import User
 
-from unittest.mock import patch, MagicMock
 
-with patch("src.data.Postgre_Request.get_pg_conn", return_value=MagicMock()):
-    from fastapi.testclient import TestClient
-    from src.api.main import app
-    
 def _fake_user():
     """Utilisateur factice pour bypasser l'auth dans les tests."""
     return User(username="test_user")
