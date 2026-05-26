@@ -22,21 +22,21 @@ class TestStatsGlobal:
 
 class TestStatsSemaine:
     def test_returns_200(self, client):
-        response = client.get("/v1/statistiques/station/1057387136/semaine")
+        response = client.get("/v1/statistiques/station/1/semaine")
         assert response.status_code == status.HTTP_200_OK
 
     def test_returns_7_days(self, client):
-        data = client.get("/v1/statistiques/station/1057387136/semaine").json()
+        data = client.get("/v1/statistiques/station/1/semaine").json()
         assert len(data) == 7
 
     def test_each_day_structure(self, client):
-        data = client.get("/v1/statistiques/station/1057387136/semaine").json()
+        data = client.get("/v1/statistiques/station/1/semaine").json()
         for entry in data:
             for key in ["jour", "moyenne_velo_matin", "moyenne_velo_aprem", "moyenne_velo_soir"]:
                 assert key in entry
 
     def test_unknown_station(self, client):
-        response = client.get("/v1/statistiques/station/1/semaine")
+        response = client.get("/v1/statistiques/station/99999/semaine")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -46,5 +46,5 @@ class TestStatsAuth:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_semaine_requires_auth(self, unauthenticated_client):
-        response = unauthenticated_client.get("/v1/statistiques/station/1057387136/semaine")
+        response = unauthenticated_client.get("/v1/statistiques/station/1/semaine")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED

@@ -21,5 +21,3 @@ def client():
 def unauthenticated_client():
     """Client sans override, pour tester que l'auth est bien active."""
     return TestClient(app)
-
-
