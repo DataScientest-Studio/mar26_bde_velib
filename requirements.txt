@@ -16,3 +16,8 @@ scipy==1.17.1
 six==1.17.0
 threadpoolctl==3.6.0
 urllib3==2.6.3
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+pydantic-settings>=2.0.0
