@@ -13,14 +13,14 @@ logger = setup_logger()
 from dotenv import load_dotenv
 load_dotenv()
 
-pg_conn = psycopg2.connect(
-            database="db_velib",
-            user= os.getenv("PG_LOGIN"),
-            password= os.getenv("PG_PASSWORD"),
-            host= os.getenv("PG_HOST"),
-            port= os.getenv("PG_PORT")
-        )
-
+def get_pg_conn():
+    return psycopg2.connect(
+        database="db_velib",
+        user=os.getenv("PG_LOGIN"),
+        password=os.getenv("PG_PASSWORD"),
+        host=os.getenv("PG_HOST"),
+        port=os.getenv("PG_PORT")
+    )
 
 class PostgreRequest:
 
@@ -100,7 +100,8 @@ class PostgreRequest:
         """
         
 
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             cur.execute(f"SELECT inserted_at FROM {Base} ORDER BY inserted_at DESC LIMIT 1;")
             row = cur.fetchone()
             if row:
@@ -160,7 +161,7 @@ class PostgreRequest:
         - La vérification de la liste vide est réalisée avec un return 
         immédiat (sans journalisation d'avertissement), contrairement 
         aux fonctions insert_stations_info() et insert_stations_satut().
-        - Un commit explicite (pg_conn.commit()) est effectué après l'insertion 
+        - Un commit explicite (conn.commit()) est effectué après l'insertion 
         pour valider la transaction.
         - La fonction repose sur une connexion PostgreSQL globale (pg_conn) 
         initialisée en dehors de la fonction.
@@ -207,13 +208,14 @@ class PostgreRequest:
         """
 
         if not data: return
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             psycopg2.extras.execute_values(
                 cur,
                 "INSERT INTO meteo (city_name, temp, humidity, description, wind_speed, inserted_at) VALUES %s",
                 [(d["city"], d["temp"], d["humidity"], d["desc"], d["wind"], d["date"]) for d in data]
             )
-        pg_conn.commit()
+        conn.commit()
         #print(f"☀️ {datetime.now(timezone.utc)} - {len(data)} météo insérée(s).")
         logger.info(f"☀️ - {len(data)} météo insérée(s).")
 
@@ -273,7 +275,7 @@ class PostgreRequest:
             * name, capacity, latitude, longitude
         - La fonction utilise psycopg2.extras.execute_values pour réaliser 
         l'UPSERT en lot, plus performant que des insertions/mises à jour unitaires.
-        - Un commit explicite (pg_conn.commit()) est effectué après l'opération 
+        - Un commit explicite (conn.commit()) est effectué après l'opération 
         pour valider la transaction.
         - La fonction repose sur une connexion PostgreSQL globale (pg_conn) 
         initialisée en dehors de la fonction.
@@ -341,7 +343,8 @@ class PostgreRequest:
             #print(f"⚠️    {datetime.now(timezone.utc)} - Aucune Information de station à insérer.")
             return
         
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             psycopg2.extras.execute_values(
                 cur,
                 """
@@ -357,7 +360,7 @@ class PostgreRequest:
                 [(s["station_id"], s["name"], s["capacity"] , s["lat"], s["lon"] )
                 for s in stations]
             )
-        pg_conn.commit()
+        conn.commit()
         #print(f"✅    {datetime.now(timezone.utc)} - {len(stations)} information  stations insérées dans PostgreSQL.")
         logger.info(f"✅ - {len(stations)} information  stations insérées dans PostgreSQL.")
 
@@ -409,7 +412,7 @@ class PostgreRequest:
         -----
         - La fonction utilise psycopg2.extras.execute_values pour réaliser 
         une insertion en lot, plus performante que des insertions unitaires.
-        - Un commit explicite (pg_conn.commit()) est effectué après l'insertion 
+        - Un commit explicite (conn.commit()) est effectué après l'insertion 
         pour valider la transaction.
         - Si la liste stations est vide, un avertissement est journalisé 
         via logger.warning() et la fonction retourne immédiatement sans 
@@ -460,7 +463,8 @@ class PostgreRequest:
             #print(f"⚠️    {datetime.now(timezone.utc)} - Aucune statut station à insérer .")
             return
 
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             psycopg2.extras.execute_values(
                 cur,
                 """
@@ -471,7 +475,7 @@ class PostgreRequest:
                 [(s["station_id"], s["docker_total"], s["mechanical"], s["ebike"] , s["date"])
                 for s in stations]
             )
-        pg_conn.commit()
+        conn.commit()
         #print(f"✅    {datetime.now(timezone.utc)} -  {len(stations)} Statut stations insérées dans PostgreSQL.")
         logger.info(f"✅ - {len(stations)} Statut stations insérées dans PostgreSQL.")
 
