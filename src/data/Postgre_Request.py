@@ -13,14 +13,14 @@ logger = setup_logger()
 from dotenv import load_dotenv
 load_dotenv()
 
-pg_conn = psycopg2.connect(
-            database="db_velib",
-            user= os.getenv("PG_LOGIN"),
-            password= os.getenv("PG_PASSWORD"),
-            host= os.getenv("PG_HOST"),
-            port= os.getenv("PG_PORT")
-        )
-
+def get_pg_conn():
+    return psycopg2.connect(
+        database="db_velib",
+        user=os.getenv("PG_LOGIN"),
+        password=os.getenv("PG_PASSWORD"),
+        host=os.getenv("PG_HOST"),
+        port=os.getenv("PG_PORT")
+    )
 
 class PostgreRequest:
 
@@ -100,7 +100,8 @@ class PostgreRequest:
         """
         
 
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             cur.execute(f"SELECT inserted_at FROM {Base} ORDER BY inserted_at DESC LIMIT 1;")
             row = cur.fetchone()
             if row:
@@ -160,7 +161,7 @@ class PostgreRequest:
         - La vérification de la liste vide est réalisée avec un return 
         immédiat (sans journalisation d'avertissement), contrairement 
         aux fonctions insert_stations_info() et insert_stations_satut().
-        - Un commit explicite (pg_conn.commit()) est effectué après l'insertion 
+        - Un commit explicite (conn.commit()) est effectué après l'insertion 
         pour valider la transaction.
         - La fonction repose sur une connexion PostgreSQL globale (pg_conn) 
         initialisée en dehors de la fonction.
@@ -207,13 +208,14 @@ class PostgreRequest:
         """
 
         if not data: return
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             psycopg2.extras.execute_values(
                 cur,
                 "INSERT INTO meteo (city_name, temp, humidity, description, wind_speed, inserted_at) VALUES %s",
                 [(d["city"], d["temp"], d["humidity"], d["desc"], d["wind"], d["date"]) for d in data]
             )
-        pg_conn.commit()
+        conn.commit()
         #print(f"☀️ {datetime.now(timezone.utc)} - {len(data)} météo insérée(s).")
         logger.info(f"☀️ - {len(data)} météo insérée(s).")
 
@@ -273,7 +275,7 @@ class PostgreRequest:
             * name, capacity, latitude, longitude
         - La fonction utilise psycopg2.extras.execute_values pour réaliser 
         l'UPSERT en lot, plus performant que des insertions/mises à jour unitaires.
-        - Un commit explicite (pg_conn.commit()) est effectué après l'opération 
+        - Un commit explicite (conn.commit()) est effectué après l'opération 
         pour valider la transaction.
         - La fonction repose sur une connexion PostgreSQL globale (pg_conn) 
         initialisée en dehors de la fonction.
@@ -341,7 +343,8 @@ class PostgreRequest:
             #print(f"⚠️    {datetime.now(timezone.utc)} - Aucune Information de station à insérer.")
             return
         
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             psycopg2.extras.execute_values(
                 cur,
                 """
@@ -357,7 +360,7 @@ class PostgreRequest:
                 [(s["station_id"], s["name"], s["capacity"] , s["lat"], s["lon"] )
                 for s in stations]
             )
-        pg_conn.commit()
+        conn.commit()
         #print(f"✅    {datetime.now(timezone.utc)} - {len(stations)} information  stations insérées dans PostgreSQL.")
         logger.info(f"✅ - {len(stations)} information  stations insérées dans PostgreSQL.")
 
@@ -409,7 +412,7 @@ class PostgreRequest:
         -----
         - La fonction utilise psycopg2.extras.execute_values pour réaliser 
         une insertion en lot, plus performante que des insertions unitaires.
-        - Un commit explicite (pg_conn.commit()) est effectué après l'insertion 
+        - Un commit explicite (conn.commit()) est effectué après l'insertion 
         pour valider la transaction.
         - Si la liste stations est vide, un avertissement est journalisé 
         via logger.warning() et la fonction retourne immédiatement sans 
@@ -460,7 +463,8 @@ class PostgreRequest:
             #print(f"⚠️    {datetime.now(timezone.utc)} - Aucune statut station à insérer .")
             return
 
-        with pg_conn.cursor() as cur:
+        conn = get_pg_conn()
+        with conn.cursor() as cur:
             psycopg2.extras.execute_values(
                 cur,
                 """
@@ -471,7 +475,7 @@ class PostgreRequest:
                 [(s["station_id"], s["docker_total"], s["mechanical"], s["ebike"] , s["date"])
                 for s in stations]
             )
-        pg_conn.commit()
+        conn.commit()
         #print(f"✅    {datetime.now(timezone.utc)} -  {len(stations)} Statut stations insérées dans PostgreSQL.")
         logger.info(f"✅ - {len(stations)} Statut stations insérées dans PostgreSQL.")
 
@@ -601,7 +605,7 @@ class PostgreRequest:
                 ORDER BY RANDOM() LIMIT 25000000; """    #LIMIT 30000000 ;
             
             
-            
+            conn = get_pg_conn()
             with engine.connect() as conn:
                 df = pd.read_sql_query(query, conn)
             return df
@@ -735,7 +739,7 @@ class PostgreRequest:
             """
             
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
             
             return df
 
@@ -881,7 +885,7 @@ class PostgreRequest:
 
             """
             
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
             
             return df
 
@@ -974,7 +978,7 @@ class PostgreRequest:
                 """
                 
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
                 
             return df
 
@@ -1112,7 +1116,7 @@ class PostgreRequest:
                 WHERE {where}
             """
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
 
             return df
 
@@ -1213,22 +1217,22 @@ class PostgreRequest:
 
             query = f"""
                     SELECT 
-                    station_info_flat.id_station, station_info_flat.name, station_info_flat.latitude, station_info_flat.longitude, 
-                    transport_stops.arrname, distance, station_info_flat.capacity
+                    station_info_flat.id_station , station_info_flat.name , station_info_flat.latitude , station_info_flat.longitude , 
+                    transport_stops.arrname ,distance
 
                     FROM proximity 
                     JOIN station_info_flat ON proximity.id_station = station_info_flat.id_station
                     JOIN transport_stops ON proximity.id_transport_stop = transport_stops.id_transport_stop
                         
                     {condition}       
-                    ORDER BY station_info_flat.name, distance ASC
+                    ORDER BY station_info_flat.id_station
                         
 
                 """
 
 
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
                     
             return df
 
@@ -1323,44 +1327,32 @@ class PostgreRequest:
             condition = ""
 
             if id_station == None :
-                condition1 = ""
-                condition2 = ""
+                condition = ""
             else : 
-                condition1 = f"WHERE id_station = {id_station}"
-                condition2 = f"WHERE s.id_station = {id_station}"
+                condition = f"and  s.id_station  = {id_station}"
 
-            query = f"""
-                    WITH last_update AS (
-                        SELECT MAX(inserted_at) as inserted_at
-                        FROM station_status_flat
-                        {condition1}
-                    ),
-                    target_hour AS (
-                        SELECT DATE_TRUNC('hour', inserted_at) as hour_trunc
-                        FROM last_update
-                    )
-                    SELECT 
-                        s.id_station, 
-                        (s.num_bikes_mechanical + s.num_bikes_ebike)  AS nb_velo,
-                        s.num_bikes_mechanical                         AS nb_velo_classique,
-                        s.num_bikes_ebike                              AS nb_velo_electrique,
-                        s.num_docks_available                          AS nb_place_libre,
-                        i.capacity                                     AS capacite_totale, 
-                        s.inserted_at                                  AS derniere_maj,
-                        w.description, 
-                        w.temp                                         AS temperature, 
-                        w.humidity                                     AS humidite, 
-                        w.wind_speed                                   AS vent 
+            query = f"""SELECT s.id_station, 
+                        (s.num_bikes_mechanical + s.num_bikes_ebike) as nb_velo,
+                        s.num_bikes_mechanical as nb_velo_classique , 
+                        s.num_bikes_ebike as nb_velo_electrique ,
+                        s.num_docks_available as nb_place_libre ,
+                        i.capacity as capacite_totale , 
+                        s.inserted_at as derniere_maj,
+                        w.description , 
+                        w.temp as temperature , 
+                        w.humidity as humidite , 
+                        w.wind_speed vent 
+                    
                     FROM station_status_flat s
-                    JOIN last_update lu      ON s.inserted_at = lu.inserted_at
                     JOIN station_info_flat i ON s.id_station = i.id_station
-                    LEFT JOIN meteo w        ON w.inserted_at >= (SELECT hour_trunc FROM target_hour)
-                                            AND w.inserted_at  < (SELECT hour_trunc FROM target_hour) + INTERVAL '1 hour'
-                                            AND w.city_name = 'Paris'
-                    {condition2};    
+                    LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
+                        
+                    WHERE  w.city_name  ='Paris'   {condition}
+                    and s.inserted_at = (SELECT inserted_at from station_status_flat ORDER BY inserted_at DESC LIMIT 1)
+                        
                     """
 
-            df = pd.read_sql_query(query, pg_conn)
+            df = pd.read_sql_query(query, get_pg_conn())
                     
             return df
 

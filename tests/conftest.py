@@ -1,4 +1,10 @@
 import pytest
+import sys
+from unittest.mock import patch, MagicMock
+
+sys.modules['psycopg2'] = MagicMock()
+
+
 from fastapi.testclient import TestClient
 from src.api.main import app
 from src.api.dependencies import get_current_user
@@ -21,5 +27,3 @@ def client():
 def unauthenticated_client():
     """Client sans override, pour tester que l'auth est bien active."""
     return TestClient(app)
-
-
