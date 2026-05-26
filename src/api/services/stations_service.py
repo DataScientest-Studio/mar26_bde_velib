@@ -1,45 +1,96 @@
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from src.api.schemas.stations import Station, EtatStation, Proximite, Meteo
+from src.data.Postgre_Request import PostgreRequest
 
+def _dataframe_to_stations(df) -> list[Station]:
+    """Convertit le DataFrame retourné par extrat_info_station_api en liste de Station."""
+    if df is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Impossible de contacter la base de données",
+        )
 
-# --- Données factices (à remplacer par les méthode de Belkacem) ---
-_STATIONS_DB: dict[int, Station] = {
-    1: Station(
-        id_station=1,
-        nom_station="République",
-        longitude=2.3635,
-        latitude=48.8676,
-        capacite_totale=30,
-        proximite=[
-            Proximite(arret_transport="Métro République", distance=50.0),
-        ],
-    ),
-    2: Station(
-        id_station=2,
-        nom_station="Bastille",
-        longitude=2.3692,
-        latitude=48.8532,
-        capacite_totale=40,
-        proximite=[
-            Proximite(arret_transport="Métro Bastille", distance=30.0),
-        ],
-    ),
-}
+    stations: dict[int, Station] = {}
+    seen_arrets: dict[int, set[str]] = {}  # ← trace les arrnames déjà ajoutés par station
 
+    for _, row in df.iterrows():
+        id_station = int(row["id_station"])
+
+        if id_station not in stations:
+            stations[id_station] = Station(
+                id_station=id_station,
+                nom_station=row["name"],
+                latitude=float(row["latitude"]),
+                longitude=float(row["longitude"]),
+                capacite_totale=int(row["capacity"]),
+                proximite=[],
+            )
+            seen_arrets[id_station] = set()
+
+        arrname = row["arrname"]
+        if arrname not in seen_arrets[id_station]:
+            seen_arrets[id_station].add(arrname)
+            stations[id_station].proximite.append(
+                Proximite(
+                    arret_transport=arrname,
+                    distance=float(row["distance"]),
+                )
+            )
+
+    return list(stations.values())
+
+def _dataframe_to_etats(df) -> list[EtatStation]:
+    """Convertit le DataFrame de extrat_info_etat_api en liste de EtatStation."""
+    if df is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Impossible de contacter la base de données",
+        )
+
+    etats: list[EtatStation] = []
+
+    for _, row in df.iterrows():
+        # Météo : LEFT JOIN, donc peut être None
+        meteo = None
+        if row.get("description") is not None:
+            meteo = Meteo(
+                description=row["description"],
+                temperature=float(row["temperature"]),
+                humidite=float(row["humidite"]),
+                vent=float(row["vent"]),
+            )
+
+        etats.append(EtatStation(
+            id_station=int(row["id_station"]),
+            nb_velo=int(row["nb_velo"]),
+            nb_velo_classique=int(row["nb_velo_classique"]),
+            nb_velo_electrique=int(row["nb_velo_electrique"]),
+            nb_place_libre=int(row["nb_place_libre"]),
+            capacite_totale=int(row["capacite_totale"]),
+            derniere_maj=row["derniere_maj"],
+            meteo=meteo,
+        ))
+
+    return etats
 
 def list_stations() -> list[Station]:
-    return list(_STATIONS_DB.values())
+    df = PostgreRequest.extrat_info_station_api()
+    return _dataframe_to_stations(df)
 
 
 def get_station(id_station: int) -> Station:
-    station = _STATIONS_DB.get(id_station)
-    if not station:
+    df = PostgreRequest.extrat_info_station_api(id_station=id_station)
+
+    stations = _dataframe_to_stations(df)
+
+    if not stations:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Station {id_station} introuvable",
         )
-    return station
+
+    return stations[0]
 
 
 def _fake_meteo() -> Meteo:
@@ -48,21 +99,18 @@ def _fake_meteo() -> Meteo:
 
 
 def get_etat_station(id_station: int) -> EtatStation:
-    station = get_station(id_station)  # Lève 404 si inconnue
-    # --- Données factices (à remplacer par les méthode de Belkacem) ---
-    nb_classique, nb_elec = 8, 5
-    nb_velo = nb_classique + nb_elec
-    return EtatStation(
-        id_station=station.id_station,
-        nb_velo=nb_velo,
-        nb_velo_classique=nb_classique,
-        nb_velo_electrique=nb_elec,
-        nb_place_libre=station.capacite_totale - nb_velo,
-        capacite_totale=station.capacite_totale,
-        derniere_maj=datetime.now(timezone.utc),
-        meteo=_fake_meteo(),
-    )
+    df = PostgreRequest.extrat_info_etat_api(id_station=id_station)
+    etats = _dataframe_to_etats(df)
+
+    if not etats:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Station {id_station} introuvable ou pas de données récentes",
+        )
+
+    return etats[0]
 
 
 def list_etats() -> list[EtatStation]:
-    return [get_etat_station(sid) for sid in _STATIONS_DB.keys()]
+    df = PostgreRequest.extrat_info_etat_api()
+    return _dataframe_to_etats(df)

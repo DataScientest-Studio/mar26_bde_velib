@@ -17,7 +17,6 @@ class TestAuthentication:
         response = unauthenticated_client.get("/v1/stations/etats")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-
 class TestListStations:
     def test_returns_200(self, client):
         response = client.get("/v1/stations")
@@ -47,12 +46,12 @@ class TestListStations:
 
 class TestGetStation:
     def test_existing_station(self, client):
-        response = client.get("/v1/stations/1")
+        response = client.get("/v1/stations/1057387136")
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["id_station"] == 1
+        assert response.json()["id_station"] == 1057387136
 
     def test_unknown_station_returns_404(self, client):
-        response = client.get("/v1/stations/99999")
+        response = client.get("/v1/stations/1")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_invalid_id_returns_422(self, client):
@@ -63,11 +62,11 @@ class TestGetStation:
 
 class TestEtatStation:
     def test_returns_200(self, client):
-        response = client.get("/v1/stations/1/etat")
+        response = client.get("/v1/stations/1057387136/etat")
         assert response.status_code == status.HTTP_200_OK
 
     def test_structure(self, client):
-        response = client.get("/v1/stations/1/etat")
+        response = client.get("/v1/stations/1057387136/etat")
         data = response.json()
         expected_keys = {
             "id_station", "nb_velo", "nb_velo_classique", "nb_velo_electrique",
@@ -76,24 +75,24 @@ class TestEtatStation:
         assert expected_keys.issubset(data.keys())
 
     def test_meteo_structure(self, client):
-        response = client.get("/v1/stations/1/etat")
+        response = client.get("/v1/stations/1057387136/etat")
         meteo = response.json()["meteo"]
         assert {"description", "temperature", "humidite", "vent"}.issubset(meteo.keys())
 
     def test_coherence_nb_velo(self, client):
         """nb_velo doit être égal à la somme classique + électrique."""
-        response = client.get("/v1/stations/1/etat")
+        response = client.get("/v1/stations/1057387136/etat")
         data = response.json()
         assert data["nb_velo"] == data["nb_velo_classique"] + data["nb_velo_electrique"]
 
     def test_coherence_places(self, client):
         """nb_velo + nb_place_libre = capacite_totale."""
-        response = client.get("/v1/stations/1/etat")
+        response = client.get("/v1/stations/1057387136/etat")
         data = response.json()
         assert data["nb_velo"] + data["nb_place_libre"] == data["capacite_totale"]
 
     def test_unknown_station_returns_404(self, client):
-        response = client.get("/v1/stations/99999/etat")
+        response = client.get("/v1/stations/1/etat")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
