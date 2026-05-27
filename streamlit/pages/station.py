@@ -9,11 +9,27 @@ import datetime
 import os
 from dotenv import load_dotenv
 load_dotenv()
-HOST = os.getenv("PG_HOST")
+HOST = "127.0.0.1" ##os.getenv("PG_HOST")
+
+
+url = f"http://{HOST}:8000/auth/login"
+
+data = {
+    "username": "alice",
+    "password": "wonderland"
+}
+
+response = requests.post(url, data=data)
+data = response.json()
+df = pd.DataFrame([data])
+print(df["access_token"][0])
+access_token = df["access_token"][0]
+
 
 
 # ── Récupérer l'id depuis session_state ────────────
 id_station = st.session_state.get("id_station")
+
 
 if not id_station:
     st.error(" Aucune station sélectionnée")
@@ -23,9 +39,9 @@ st.title(f" Station #{id_station}")
 
 # ── Appel API ──────────────────────────────────────
 try:
-    response = requests.get(f"http://{HOST}:8000/v1/stations/{id_station}")
-    etat = requests.get(f"http://{HOST}:8000/v1/stations/{id_station}/etat")
-    semaine_response = requests.get(f"http://{HOST}:8000/v1/statistiques/station/{id_station}/semaine")
+    response = requests.get(f"http://{HOST}:8000/v1/stations/{id_station}", headers={"Authorization": f"Bearer {access_token}"} )
+    etat = requests.get(f"http://{HOST}:8000/v1/stations/{id_station}/etat", headers={"Authorization": f"Bearer {access_token}"} )
+    semaine_response = requests.get(f"http://{HOST}:8000/v1/statistiques/station/{id_station}/semaine", headers={"Authorization": f"Bearer {access_token}"} )
 
     if response.status_code == 200:
         station = response.json()

@@ -5,7 +5,20 @@ from datetime import date
 import os
 from dotenv import load_dotenv
 load_dotenv()
-HOST = os.getenv("PG_HOST")
+HOST = "127.0.0.1" ##os.getenv("PG_HOST")
+
+url = f"http://{HOST}:8000/auth/login"
+
+data = {
+    "username": "alice",
+    "password": "wonderland"
+}
+
+response = requests.post(url, data=data)
+data = response.json()
+df = pd.DataFrame([data])
+print(df["access_token"][0])
+access_token = df["access_token"][0]
 
 
 st.title(f"Information metro ")
@@ -46,7 +59,7 @@ if bouton_recherche or query:
     if query:
         url = requests.get(
             f"http://{HOST}:8000/v1/predictions/metro",
-            params={"arret_transport": query, "heure": heure_str, "date": date_str}
+            params={"arret_transport": query, "heure": heure_str, "date": date_str} , headers={"Authorization": f"Bearer {access_token}"} 
         )
 
         if url.status_code == 200:

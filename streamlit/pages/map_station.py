@@ -8,13 +8,29 @@ import os
 
 from dotenv import load_dotenv
 load_dotenv()
-HOST = os.getenv("PG_HOST")
+HOST =  "127.0.0.1" ##os.getenv("PG_HOST")
 st.title(" Dashboard - Stations")
+
+
+url = f"http://{HOST}:8000/auth/login"
+
+data = {
+    "username": "alice",
+    "password": "wonderland"
+}
+
+response = requests.post(url, data=data)
+data = response.json()
+df = pd.DataFrame([data])
+print(df["access_token"][0])
+access_token = df["access_token"][0]
 
 
 
 try:
-    response = requests.get(f"http://{HOST}:8000/v1/stations")
+    response = requests.get(f"http://{HOST}:8000/v1/stations" , headers={"Authorization": f"Bearer {access_token}"} )
+
+    response.status_code
 
     if response.status_code == 200:
         data = response.json()
