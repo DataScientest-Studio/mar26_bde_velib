@@ -5,7 +5,10 @@ import psycopg2
 from sqlalchemy import create_engine
 import pandas as pd
 
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
+HOST = os.getenv("PG_HOST")
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from src.config.logger_config import setup_logger 

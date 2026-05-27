@@ -4,12 +4,17 @@ import pandas as pd
 import pydeck as pdk
 import time
 import datetime
+import os
 
+from dotenv import load_dotenv
+load_dotenv()
+HOST = os.getenv("PG_HOST")
 st.title(" Dashboard - Stations")
 
 
+
 try:
-    response = requests.get("http://localhost:8000/v1/stations")
+    response = requests.get(f"http://{HOST}:8000/v1/stations")
 
     if response.status_code == 200:
         data = response.json()

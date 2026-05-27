@@ -2,7 +2,10 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import date
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
+HOST = os.getenv("PG_HOST")
 
 
 st.title(f"Information metro ")
@@ -42,7 +45,7 @@ with col4:
 if bouton_recherche or query:
     if query:
         url = requests.get(
-            f"http://localhost:8000/v1/predictions/metro",
+            f"http://{HOST}:8000/v1/predictions/metro",
             params={"arret_transport": query, "heure": heure_str, "date": date_str}
         )
 

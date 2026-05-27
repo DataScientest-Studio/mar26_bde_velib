@@ -6,6 +6,11 @@ from streamlit_apexjs import st_apexcharts
 import datetime
 
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+HOST = os.getenv("PG_HOST")
+
 
 # ── Récupérer l'id depuis session_state ────────────
 id_station = st.session_state.get("id_station")
@@ -18,9 +23,9 @@ st.title(f" Station #{id_station}")
 
 # ── Appel API ──────────────────────────────────────
 try:
-    response = requests.get(f"http://localhost:8000/v1/stations/{id_station}")
-    etat = requests.get(f"http://localhost:8000/v1/stations/{id_station}/etat")
-    semaine_response = requests.get(f"http://localhost:8000/v1/statistiques/station/{id_station}/semaine")
+    response = requests.get(f"http://{HOST}:8000/v1/stations/{id_station}")
+    etat = requests.get(f"http://{HOST}:8000/v1/stations/{id_station}/etat")
+    semaine_response = requests.get(f"http://{HOST}:8000/v1/statistiques/station/{id_station}/semaine")
 
     if response.status_code == 200:
         station = response.json()
@@ -95,7 +100,7 @@ try:
 
     #hours = "".join([f"&heure={i}:00" for i in range(5, 24)])
 
-    predictions_response = requests.get(f"http://localhost:8000/v1/predictions/station?id_station={id_station}{hours}")
+    predictions_response = requests.get(f"http://{HOST}:8000/v1/predictions/station?id_station={id_station}{hours}")
 
     if predictions_response.status_code == 200:
         predictions = predictions_response.json()

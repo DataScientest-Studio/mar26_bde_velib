@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 import requests
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+HOST = os.getenv("PG_HOST")
+
 st.title("Statistiques de la semaine")
 
 # 0. Récupération de l'ID de la station sauvegardé en session
@@ -12,7 +17,7 @@ if id_station is not None:
     try:
         # 1. Appel de l'API
         
-        url = f"http://localhost:8000/v1/statistiques/station/{id_station}/semaine"
+        url = f"http://{HOST}:8000/v1/statistiques/station/{id_station}/semaine"
         semaine_response = requests.get(url)
 
         if semaine_response.status_code == 200:
