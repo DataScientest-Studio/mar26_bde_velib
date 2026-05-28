@@ -9,7 +9,7 @@ import datetime
 import os
 from dotenv import load_dotenv
 load_dotenv()
-HOST = "127.0.0.1" ##os.getenv("PG_HOST")
+HOST = os.getenv("API_HOST")
 
 
 url = f"http://{HOST}:8000/auth/login"

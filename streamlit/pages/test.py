@@ -5,7 +5,7 @@ import requests
 import os
 from dotenv import load_dotenv
 load_dotenv()
-HOST = os.getenv("PG_HOST")
+HOST = os.getenv("API_HOST")
 
 st.title("Statistiques de la semaine")
 
