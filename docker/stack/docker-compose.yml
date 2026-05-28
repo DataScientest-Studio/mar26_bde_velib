@@ -51,7 +51,40 @@ services:
       - mongodb
     networks:
       - backend
+  api:
+    build: ./python
+    container_name: velib_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python/workspace:/workspace
+    working_dir: /workspace
+    depends_on:
+      - postgresql
+      - mongodb
+    networks:
+      - backend
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
+  cron:
+    build: ./python
+    container_name: velib_cron
+    restart: unless-stopped
+    volumes:
+      - ./python/workspace:/workspace
+      - ./python/crontab.txt:/etc/cron.d/velib-cron:ro
+    working_dir: /workspace
+    depends_on:
+      - postgresql
+      - mongodb
+    networks:
+      - backend
+    command: >
+      bash -c "cp /etc/cron.d/velib-cron /etc/cron.d/velib-cron.local &&
+               chmod 0644 /etc/cron.d/velib-cron.local &&
+               touch /workspace/import.log &&
+               cron -f"
 volumes:
   pg_data:
   mongo_data:
