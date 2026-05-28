@@ -1,0 +1,11 @@
+# Variables d'environnement pour cron (il n'hérite pas de celles du container)
+PATH=/app/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Toutes les minutes
+* * * * * root cd /workspace && /app/.venv/bin/python src/data/import.py minute >> /workspace/import.log 2>&1
+# Toutes les heures
+0 * * * * root cd /workspace && /app/.venv/bin/python src/data/import.py hourly >> /workspace/import.log 2>&1
+# Tous les jours à 00:05
+5 0 * * * root cd /workspace && /app/.venv/bin/python src/data/import.py daily >> /workspace/import.log 2>&1
+# Toutes les 5 minutes
+*/5 * * * * root cd /workspace && /app/.venv/bin/python src/data/import.py 5minutes >> /workspace/import.log 2>&1
