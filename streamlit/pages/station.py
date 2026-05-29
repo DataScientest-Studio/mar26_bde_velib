@@ -15,8 +15,8 @@ HOST = os.getenv("API_HOST")
 url = f"http://{HOST}:8000/auth/login"
 
 data = {
-    "username": "alice",
-    "password": "wonderland"
+    "username": os.getenv("API_USER") , 
+    "password": os.getenv("API_PASSWORD") 
 }
 
 response = requests.post(url, data=data)
@@ -145,6 +145,4 @@ try:
 except Exception as e:
     st.error(f" Erreur : {e}")
 
-# ── Bouton retour ──────────────────────────────────
-if st.button("⬅️ Retour Accueil"):
-    st.switch_page("/app.py")  
+

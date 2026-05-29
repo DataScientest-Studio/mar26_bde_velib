@@ -10,10 +10,9 @@ HOST = os.getenv("API_HOST")
 url = f"http://{HOST}:8000/auth/login"
 
 data = {
-    "username": "alice",
-    "password": "wonderland"
+    "username": os.getenv("API_USER") , 
+    "password": os.getenv("API_PASSWORD") 
 }
-
 response = requests.post(url, data=data)
 data = response.json()
 df = pd.DataFrame([data])

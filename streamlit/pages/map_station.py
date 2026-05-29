@@ -20,8 +20,8 @@ st.title(" Dashboard - Stations")
 url = f"http://{HOST}:8000/auth/login"
 
 data = {
-    "username": "alice",
-    "password": "wonderland"
+    "username": os.getenv("API_USER") , 
+    "password": os.getenv("API_PASSWORD") 
 }
 
 response = requests.post(url, data=data)
@@ -58,6 +58,7 @@ try:
 
             layer = pdk.Layer(
                 "ScatterplotLayer",
+                id="stations",  
                 data=df_map,
                 get_position=["lon", "lat"],
                 get_color=[255, 0, 0, 180],
@@ -99,15 +100,18 @@ try:
                 selection_mode="single-object",
             )
 
+
+
             
             if clicked and "objects" in clicked.selection and clicked.selection["objects"]:
-                layer_objects = clicked.selection["objects"].get("ScatterplotLayer", [])
+                layer_objects = clicked.selection["objects"].get("stations", []) 
+                print("clicque ")
                 if layer_objects:
                     obj = layer_objects[0]
                     
                     # On stocke l'info dans le session_state
                     st.session_state["id_station"] = obj["id_station"]
-                    
+                    print("tzqt")
                     # On affiche un message rapide et on force le changement de page immédiat
                     st.toast(f"Chargement de la station : {obj['nom_station']}...")
                     st.switch_page("pages/station.py")
@@ -134,10 +138,6 @@ try:
 
             st.success(f" Station sélectionnée : {nom}")
             st.switch_page("pages/station.py")
-
-
-
-
 
 
     else:
