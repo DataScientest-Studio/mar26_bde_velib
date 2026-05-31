@@ -1103,7 +1103,7 @@ class PostgreRequest:
 
             
             if id_arret_transport is not None and nom_arret_transport is not None:
-                where = "arrname = %(nom)s OR transport_stops.id_transport_stop = %(id)s"
+                where = f"arrname = '{nom_arret_transport}' OR transport_stops.id_transport_stop = {id_arret_transport}"
             elif id_arret_transport is not None:
                 where = f"transport_stops.id_transport_stop = {id_arret_transport}"
             else:
