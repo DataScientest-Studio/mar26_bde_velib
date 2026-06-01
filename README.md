@@ -60,6 +60,7 @@ mar26_bde_velib/
 ├── README.md
 ├── requirements.txt # Dépendances Python
 └── .gitignore
+```
 ---
 
 ## 📊  Données utilisées
