@@ -1,4 +1,5 @@
-# 🚲  Analyse des données Vélib' — Projet BDE DataScientest
+
+# 🚲  Analyse des données Vélib' — Projet BDE velib Liora
 
 ## 📌  Contexte du projet
 
@@ -28,24 +29,42 @@ Les principaux objectifs du projet sont :
 
 ```bash
 mar26_bde_velib/
-│
-├── data/                  # Script d'intération au BDD
-├── notebooks/             # Notebooks d'analyse
-├── src/                   # Scripts Python
-├──── config                  #Script configuration des log 
-├──── model                   #Scrpt d'entrainement et intérogation du model
-├── visualizations/        # Graphiques et exports
-├── models/                # Modèles ML éventuels
-├── requirements.txt       # Dépendances Python
+├── analytics # TO CHECK
+├── docker # Configuration docker et script d'initialisation
+│   └── stack
+│       ├── init-mongo
+│       ├── init-postgres
+│       └── python
+├── logs
+├── models # TO DELETE
+├── notebooks # TO DELETE
+├── references # TO DELETE
+├── reports # TO CHECK
+│   └── figures
+├── src # Scripts Python
+│   ├── api # Configuration FastAPI
+│   │   ├── core
+│   │   ├── routers
+│   │   ├── schemas
+│   │   └── services
+│   ├── config # TO CHECK
+│   ├── data  # Script d'intération au BDD
+│   ├── features # TO CHECK
+│   ├── ml # TO CHECK
+│   ├── models #Scrrpt d'entrainement et interrogation du modèle de prédiction
+│   ├── streamlit # Configuration Streamlit
+│   └── visualization # TO DELETE
+└── tests # Tests unitaires
+    └── api
+├── LICENSE
 ├── README.md
+├── requirements.txt # Dépendances Python
 └── .gitignore
-```
-
 ---
 
 ## 📊  Données utilisées
 
-Les données proviennent de l'API Open Data Vélib' Métropole.
+Les données proviennent de l'API Open Data Vélib\' Métropole, d'Openweathermap et de la SNCF / RATP.
 
 ### Sources possibles
 
@@ -54,7 +73,8 @@ Les données proviennent de l'API Open Data Vélib' Métropole.
 - Capacité des stations
 - Coordonnées GPS
 - Historique temporel
-
+- Météo en temps réel
+- Perturbation et passage des métros/RER
 ---
 
 ## 🛠️ Technologies utilisées
@@ -63,6 +83,12 @@ Les données proviennent de l'API Open Data Vélib' Métropole.
 
 - Python
 - Git / GitHub
+- PostgreSQL
+- MongoDB
+- RandomForest
+- Docker
+- FastAPI
+- Streamlit
 
 ### Librairies principales
 
@@ -79,77 +105,118 @@ Les données proviennent de l'API Open Data Vélib' Métropole.
 ## ⚙️ Installation
 ### Prérequis
 
-- Python 3.9+
 - Docker & Docker Compose
 - Git
 
-### 1. Cloner le repository
-
+### 1. Création des répertoires
 ```bash
-git clone https://github.com/DataScientest-Studio/mar26_bde_velib.git
-cd mar26_bde_velib
+sudo mkdir -p /opt/docker/stack/init-postgres
+sudo mkdir -p /opt/docker/stack/init-mongo
+sudo mkdir -p /opt/docker/stack/python
+sudo mkdir -p /opt/docker/stack/python/workspace
+cd /opt/docker/stack
 ```
 
-### 2. Créer un environnement virtuel
-
+### 2. Cloner le repository
 ```bash
-python -m venv venv
+git clone https://github.com/DataScientest-Studio/mar26_bde_velib.git python/workspace
 ```
 
-### 3. Activer l'environnement
-
-#### Linux / MacOS
-
+### 3. Copier les éléments nécessaires pour Docker
 ```bash
-source venv/bin/activate
+sudo cp -r /opt/docker/stack/python/workspace/docker/stack/. .
+sudo chmod +x init-postgres/01-create-users.sh
 ```
 
-#### Windows
-
+### 4. Création du fichier .env
 ```bash
-venv\Scripts\activate
+sudo nano .env
+```
+```bash
+# PostgreSQL
+POSTGRES_ADMIN_PASSWORD=MotDePasseAdminPG
+PG_ROMAIN_PASSWORD=MotDePasseRomain
+PG_NAHED_PASSWORD=MotDePasseNahed
+PG_BELKACEM_PASSWORD=MotDePasseBelkacem
+PG_VELIB_PASSWORD=MotDePasseVelib
+
+# MongoDB
+MONGO_ADMIN_PASSWORD=MotDePasseAdminMongo
+MG_ROMAIN_PASSWORD=MotDePasseRomain
+MG_NAHED_PASSWORD=MotDePasseNahed
+MG_BELKACEM_PASSWORD=MotDePasseBelkacem
+MG_VELIB_PASSWORD=MotDePasseVelib
+```
+```bash
+sudo cat /opt/docker/stack/python/workspace/.env | sudo tee -a .env > /dev/null
 ```
 
-### 4. Installer les dépendances
+### 5. Construire les images Docker
+```bash
+docker compose build --no-cache
+```
+
+### 6. Démarrer les containeurs Docker
+```bash
+docker compose up -d
+```
+
+### 7. Tester les containeurs Docker
 
 ```bash
-pip install -r requirements.txt
+sudo docker ps
 ```
 
 ---
 
-## ▶️ Lancer le projet
+## ▶️ Tester les services
 
-### Démarrer Jupyter Notebook
-
+### PostgreSQL (depuis le containeur Python)
+*Pensez à remplacer le mot de passe par celui inséré.*
 ```bash
-jupyter notebook
+sudo docker exec -it python python -c "
+import psycopg2
+conn = psycopg2.connect(host='postgresql', dbname='db_romain', user='romain', password='MotDePasseRomain')
+print('PostgreSQL OK')
+conn.close()
+"
 ```
-
-Ou lancer directement un script Python :
-
+### MongoDB (depuis le containeur Python)
+*Pensez à remplacer le mot de passe par celui inséré.*
 ```bash
-python src/main.py
+sudo docker exec -it python python -c "
+from pymongo import MongoClient
+client = MongoClient('mongodb://romain:MotDePasseRomain@mongodb:27017/db_romain')
+print('MongoDB OK')
+client.close()
+"
 ```
-
+### API
+```bash
+curl -i http://localhost:8000/health
+```
+### Streamlit
+```bash
+curl -i http://localhost:8501/
+```
 ---
 
 ## 📈 Exemples d'analyses
 
-- Répartition des stations par arrondissement
-- Taux d'occupation moyen
-- Disponibilité selon l'heure de la journée
-- Heatmap géographique des stations
-- Évolution du nombre de vélos disponibles
-- Comparaison vélos électriques vs mécaniques
+- Répartition des stations par arrondissement.
+- Taux d'occupation moyen.
+- Disponibilité selon l'heure de la journée.
+- Heatmap géographique des stations.
+- Évolution du nombre de vélos disponibles.
+- Comparaison vélos électriques vs mécaniques.
 
 ---
 
 ## 🧠  Pistes d'amélioration
 
-- Analyse temps réel
-- Détection des stations critiques
-- Prévision de saturation des stations
+- Analyse temps réel.
+- Détection des stations critiques.
+- Prévision de saturation des stations.
 
 ---
 
@@ -185,7 +252,7 @@ Projet réalisé par les membres du groupe BDE LIORA.
 
 ## 📄 Licence
 
-Projet pédagogique réalisé dans le cadre de la formation .
+Projet pédagogique réalisé dans le cadre de la formation Data Engineer de LIORA / École des Mines Paris ❤️.
 
 ---
 
