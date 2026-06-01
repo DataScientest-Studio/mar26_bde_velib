@@ -26,7 +26,7 @@ jobs:
             cd /opt/docker/stack/python/workspace
             if [ -d ".git" ]; then
               echo "Repo existant → git pull"
-              git pull origin main
+              git pull origin master
             else
               echo "Première fois → git clone"
               git clone https://github.com/${{ github.repository }}.git .

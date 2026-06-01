@@ -771,9 +771,71 @@ class Presiction :
 
         return  self.prediction_station(metro_filtre, heures, date) 
 
+        Notes
+        -----
+        Pipeline d'exécution
+        --------------------
+        1. Récupération des stations Vélib' proches via extrat_info_proximiter()
+        (filtre sur id_arret_transport + nom_arret_transport)
+        2. Déduplication des id_station retournés
+        3. Normalisation en Series si le résultat est un DataFrame
+        4. Délégation à prediction_station() avec la liste des stations proches
+
+        Table de proximité
+        ------------------
+        La fonction s'appuie sur la table PostgreSQL de proximité entre 
+        arrêts de transport et stations Vélib', peuplée en amont lors 
+        de l'ingestion des données géographiques.
+        Colonnes attendues en retour de extrat_info_proximiter() :
+        - id_station : identifiant de la station Vélib' proche
+        - (autres colonnes de proximité ignorées ici)
+
+        Relation avec prediction_station()
+        ------------------------------------
+        Cette fonction est un point d'entrée métier orienté "transport" :
+        l'utilisateur raisonne en termes d'arrêt de métro/bus, et la fonction 
+        résout automatiquement les stations Vélib' associées avant de 
+        lancer la prédiction.
+
+        Examples
+        --------
+        >>> # Vélos disponibles près de la station "Nation" à 8h et 18h
+        >>> resultats = prediction_metro(
+        ...     id_arret_transport    = 1234,
+        ...     nom_arret_transport   = "Nation",
+        ...     heures                = ["08:00", "18:00"],
+        ...     date                  = "2024-01-15"
+        ... )
+        >>> for r in resultats:
+        ...     print(f"Station {r['id_station']} à {r['heure']} : {r['prediction_nb_velo']} vélos")
+        Station 11042 à 08:00 : 7 vélos
+        Station 11042 à 18:00 : 2 vélos
+        Station 11043 à 08:00 : 12 vélos
+        Station 11043 à 18:00 : 5 vélos
+
+        >>> # Aucune station Vélib' à proximité
+        >>> resultats = prediction_metro(9999, "Arrêt Inconnu", ["08:00"], "2024-01-15")
+        >>> print(resultats)
+        []
+        """
+
+
+        metros = PostgreRequest.extrat_info_proximiter(id_arret_transport, nom_arret_transport)
+        sortie_prediction = []
+        metro_filtre = metros["id_station"].drop_duplicates()
+        print( f"metro_filtre  {metro_filtre}")
+
+
+        if isinstance(metro_filtre, pd.DataFrame):
+
+            metro_filtre = metro_filtre.iloc[:, 0]
+
+        return  self.prediction_station(metro_filtre, heures, date) 
 
 
 
+
+"""
 if __name__ == "__main__":
 
   
@@ -782,3 +844,4 @@ if __name__ == "__main__":
     pre.prediction_station( 11218807773 , heures , "2026-05-11")
     #prediction_metro('' , "Cadet" , heures , "2026-05-11")
 
+"""
