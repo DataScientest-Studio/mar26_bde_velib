@@ -115,7 +115,7 @@ services:
     environment:
       API_USER: ${API_USER}
       API_PASSWORD: ${API_PASSWORD}
-      HOST: http://velib_api:8000
+      API_HOST: velib_api
     volumes:
       - ./python/workspace:/workspace
     working_dir: /workspace
