@@ -17,29 +17,32 @@ from src.config.logger_config import setup_logger
 
 logger = setup_logger(name="prediction")
 
-MODEL_PATH = Path("models/model.pkl")
-model = joblib.load(MODEL_PATH)
-
-METEO_KEY= os.getenv("METEO_KEY")
-
-
 FEATURES = [
-        "id_station", "hour_sin", "hour_cos",
-        "min_sin", "min_cos", "day_of_week",
-        "temp", "humidity", "wind_speed",
-        "description_code", "capacity" ,
+            "id_station", "hour_sin", "hour_cos",
+            "min_sin", "min_cos", "day_of_week",
+            "temp", "humidity", "wind_speed",
+            "description_code", "capacity" ,
 
 
-         "lag_24h", "lag_7j"
-    ]
+            "lag_24h", "lag_7j"
+        ]
 
 
-class prediction : 
+class Presiction :
 
-    def __init__(self):
-        self.model = Path("models/model.pkl")
+    def __init__(self, model_path: Path = Path("models/model.pkl")):
 
-    def appel_prediction(self  , station , h , m) :
+        self.model_path = model_path
+        self.model = joblib.load(self.model_path)
+        self.meteo_key = os.getenv("METEO_KEY")
+
+
+    #METEO_KEY= os.getenv("METEO_KEY")
+
+
+
+
+    def appel_prediction(self, station , h , m) :
 
         """
         Réalise une prédiction du nombre de vélos disponibles pour une station 
@@ -154,7 +157,7 @@ class prediction :
         None
         """
 
-
+        
         try :
 
             logger.info("Chargement données...")
@@ -213,7 +216,7 @@ class prediction :
         except Exception as e:
             logger.error( f" Ereeur : {e} ")
 
-    def prediction_meteo(self, longetude , latitude  , heures , date ) :
+    def prediction_meteo( self, longetude , latitude  , heures , date ) :
 
         """
         Récupère les prévisions météorologiques pour une position géographique 
@@ -329,7 +332,7 @@ class prediction :
         """
 
 
-        url = f'https://api.openweathermap.org/data/2.5/forecast?appid={METEO_KEY}&units=metric&lang=fr&lat={latitude}&lon={longetude}'
+        url = f'https://api.openweathermap.org/data/2.5/forecast?appid={self.meteo_key}&units=metric&lang=fr&lat={latitude}&lon={longetude}'
         response = requests.get(url,    timeout=10)
 
         print(url)
@@ -339,16 +342,15 @@ class prediction :
         for prediction in predictions:
 
             date_prediction = datetime.strptime(prediction['dt_txt'], "%Y-%m-%d %H:%M:%S")
-            
 
             for heure in heures :
                 date_demande = datetime.strptime(f"{date} {heure}", "%Y-%m-%d %H:%M")
-                
+
                 date_fin     = date_demande + timedelta(hours=2, minutes=59)
 
 
                 if date_demande <= date_prediction <= date_fin:
-                    
+
                     resultats.append({         
                         'date': date , 
                         'heure' : heure,             
@@ -361,7 +363,7 @@ class prediction :
         return resultats
 
 
-    def prediction_station(self ,idstation, heures, date):
+    def prediction_station(self,idstation, heures, date):
 
         """
         Prédit le nombre de vélos disponibles pour une ou plusieurs stations 
@@ -538,7 +540,6 @@ class prediction :
                 heures,
                 date
             )
-            
             if not isinstance(meteo, pd.DataFrame):
                 df_meteo = pd.DataFrame(meteo)
             else:
@@ -635,7 +636,7 @@ class prediction :
             logger.info("Prédiction...")
 
             X     = df_final[FEATURES]
-            preds = np.round(model.predict(X) * df_final["capacity"])
+            preds = np.round(self.model.predict(X) * df_final["capacity"])
 
             df_final["prediction"] = preds
 
@@ -656,8 +657,6 @@ class prediction :
         except Exception as e:
             logger.error(f"Erreur : {e}")
             raise
-
-
 
 
 
@@ -756,7 +755,7 @@ class prediction :
         >>> # Aucune station Vélib' à proximité
         >>> resultats = prediction_metro(9999, "Arrêt Inconnu", ["08:00"], "2024-01-15")
         >>> print(resultats)
-        []
+
         """
 
 
@@ -780,8 +779,8 @@ if __name__ == "__main__":
 
   
     heures = [  "23:00", "18:00" , "20:00"]
-    pred= prediction()
-    pred.prediction_station( 11218807773 , heures , "2026-05-29")
-    pred.prediction_metro( 11218807773 , "Cadet" , heures , "2026-05-29")
+    pre = Presiction()
+    pre.prediction_station( 11218807773 , heures , "2026-05-11")
+    #prediction_metro('' , "Cadet" , heures , "2026-05-11")
 
 """
