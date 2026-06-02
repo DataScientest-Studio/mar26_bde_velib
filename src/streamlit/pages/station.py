@@ -116,7 +116,7 @@ try:
 
     #hours = "".join([f"&heure={i}:00" for i in range(5, 24)])
 
-    predictions_response = requests.get(f"http://{HOST}:8000/v1/predictions/station?id_station={id_station}{hours}")
+    predictions_response = requests.get(f"http://{HOST}:8000/v1/predictions/station?id_station={id_station}{hours}", headers={"Authorization": f"Bearer {access_token}"}  )
 
     if predictions_response.status_code == 200:
         predictions = predictions_response.json()
