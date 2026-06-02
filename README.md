@@ -225,11 +225,11 @@ curl -i http://localhost:8501/
 
 Projet réalisé par les membres du groupe BDE LIORA.
 
-| Nom | Rôle |
-|------|------|
-| Nahed KHEDHIRI | Data Engineering |
-| Romain DELAUNAY | Data Engineering  |
-| Belkacem TILMATINE | Data Engineering |
+| Nom | Rôle | LinkedIn |
+| :--- | :--- | :--- |
+| Nahed KHEDHIRI | Data Engineering | [![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=flat&logo=linkedin&logoColor=white)](LIEN_DE_NAHED) |
+| Romain DELAUNAY | Data Engineering | [![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rdelaunay/) |
+| Belkacem TILMATINE | Data Engineering | [![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/belkacem-tilmatine/) |
 
 
 | | |
