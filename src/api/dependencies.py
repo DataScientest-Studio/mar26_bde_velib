@@ -7,6 +7,7 @@ from src.api.core.security import (
 )
 from src.api.services.user_service import get_user
 from src.api.schemas.auth import User
+from fastapi import Request
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -34,3 +35,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             detail="Utilisateur introuvable",
         )
     return user
+
+
+def get_predictor(request: Request):
+    """Retourne le prédicteur (vrai ou fake) chargé au démarrage."""
+    return request.app.state.predictor
