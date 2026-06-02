@@ -36,10 +36,7 @@ mar26_bde_velib/
 │       ├── init-postgres
 │       └── python
 ├── logs
-├── models # TO DELETE
-├── notebooks # TO DELETE
-├── references # TO DELETE
-├── reports # TO CHECK
+├── models
 │   └── figures
 ├── src # Scripts Python
 │   ├── api # Configuration FastAPI
@@ -47,13 +44,13 @@ mar26_bde_velib/
 │   │   ├── routers
 │   │   ├── schemas
 │   │   └── services
-│   ├── config # TO CHECK
+│   ├── config
 │   ├── data  # Script d'intération au BDD
-│   ├── features # TO CHECK
-│   ├── ml # TO CHECK
+│   ├── features
+│   ├── ml
 │   ├── models #Scrrpt d'entrainement et interrogation du modèle de prédiction
 │   ├── streamlit # Configuration Streamlit
-│   └── visualization # TO DELETE
+│   └── visualization
 └── tests # Tests unitaires
     └── api
 ├── LICENSE
