@@ -15,8 +15,10 @@ from src.api.schemas.auth import User
 from src.api.schemas.stations import Station, EtatStation, Meteo
 from src.api.schemas.statistiques import StatsGlobal, StatsJour
 from src.api.schemas.predictions import (
-    PredictionStation, PredictionMetro, StationProche,
-    PredictionTrajet, StationDepart, StationArrivee,
+    PredictionStation,
+    PredictionHoraire,
+    PredictionMetro,
+    StationProche,
 )
 from src.models.fake_predictor import FakePredictor
 
@@ -63,19 +65,26 @@ FAKE_STATS_SEMAINE = [
 ]
 
 FAKE_PREDICTION_STATION = PredictionStation(
-    id_station=1, heure="08:30", date=date(2025, 1, 15), prediction_nb_velo=12
+    id_station=1,
+    date=date(2025, 1, 15),
+    predictions=[
+        PredictionHoraire(heure="08:30", prediction_nb_velo=12),
+    ],
 )
 
-FAKE_PREDICTION_METRO = PredictionMetro(stations=[
-    StationProche(id_station=1, nom_station="République", distance_metres=50.0,  heure="08:30", prediction_nb_velo=12),
-    StationProche(id_station=2, nom_station="Bastille",   distance_metres=200.0, heure="08:30", prediction_nb_velo=8),
-])
-
-FAKE_PREDICTION_TRAJET = PredictionTrajet(
-    station_depart=StationDepart(id_station=1, nom_station="République", distance_metres=0.0, prediction_nb_velo=12),
-    station_arrivee=StationArrivee(id_station=2, nom_station="Bastille", distance_metres=0.0, nb_place_libre=10, prediction_nb_place_libre=8),
-    heure_arrivee_estimee="08:45",
+FAKE_PREDICTION_METRO = PredictionMetro(
+    stations=[
+        StationProche(
+            id_station=1,
+            nom_station="République",
+            distance_metres=120.0,
+            predictions=[
+                PredictionHoraire(heure="08:30", prediction_nb_velo=10),
+            ],
+        ),
+    ],
 )
+
 
 
 # ── Fixture client UNIQUE ─────────────────────────────────────────────────────
@@ -123,9 +132,7 @@ def client():
         patch("src.api.services.predictions_service.predict_station",
               side_effect=_predict_station), \
         patch("src.api.services.predictions_service.predict_metro",
-              side_effect=lambda *args, **kwargs: FAKE_PREDICTION_METRO), \
-        patch("src.api.services.predictions_service.predict_trajet",
-              side_effect=_predict_trajet):
+              side_effect=lambda *args, **kwargs: FAKE_PREDICTION_METRO):
         yield TestClient(app)
 
     app.dependency_overrides.clear()

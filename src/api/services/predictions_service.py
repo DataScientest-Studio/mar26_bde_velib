@@ -2,15 +2,18 @@ from datetime import date as date_type, datetime, timedelta
 from fastapi import HTTPException, status
 from src.api.schemas.predictions import (
     PredictionStation, PredictionMetro, StationProche,
-    PredictionTrajet, StationDepart, StationArrivee,
+    PredictionHoraire, PredictionTrajet, StationDepart, StationArrivee,
 )
 from src.api.services import stations_service
 from src.data.Postgre_Request import PostgreRequest
 
 
-def predict_station(predictor, id_station: int, heure: str,date_: date_type | None) -> PredictionStation:
-    """Prédiction pour UNE station à UNE heure."""
-    # Vérifie que la station existe (lève 404 sinon)
+def predict_station(
+    predictor,
+    id_station: int,
+    heures: list[str],
+    date_: date_type | None,
+) -> PredictionStation:
     stations_service.get_station(id_station)
 
     if date_ is None:
@@ -19,7 +22,7 @@ def predict_station(predictor, id_station: int, heure: str,date_: date_type | No
     try:
         results = predictor.prediction_station(
             idstation=id_station,
-            heures=[heure],
+            heures=heures,
             date=date_.strftime("%Y-%m-%d"),
         )
     except Exception as e:
@@ -34,19 +37,23 @@ def predict_station(predictor, id_station: int, heure: str,date_: date_type | No
             detail=f"Aucune prédiction pour la station {id_station}",
         )
 
-    r = results[0]
     return PredictionStation(
-        id_station=int(r["id_station"]),
-        heure=r["heure"],
-        date=r["date"],
-        prediction_nb_velo=int(r["prediction_nb_velo"]),
+        id_station=id_station,
+        date=date_,
+        predictions=[
+            PredictionHoraire(
+                heure=r["heure"],
+                prediction_nb_velo=int(r["prediction_nb_velo"]),
+            )
+            for r in results
+        ],
     )
 
 
 def predict_metro(
     predictor,
     arret_transport: str,
-    heure: str,
+    heures: list[str],
     date_: date_type | None,
 ) -> PredictionMetro:
     if date_ is None:
@@ -57,9 +64,6 @@ def predict_metro(
     else:
         stations_proches = _find_stations_near_metro_by_name(arret_transport)
 
-    heures = []
-    heures.append(heure)
-
     if not stations_proches:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -68,15 +72,19 @@ def predict_metro(
 
     stations = []
     for s in stations_proches:
-        result = predictor.prediction_station(s["id_station"], heures, date_)
-
+        results = predictor.prediction_station(s["id_station"], heures, date_)
         stations.append(
             StationProche(
                 id_station=s["id_station"],
                 nom_station=s["nom_station"],
                 distance_metres=s["distance"],
-                heure=heure,
-                prediction_nb_velo=result[0]["prediction_nb_velo"],
+                predictions=[
+                    PredictionHoraire(
+                        heure=r["heure"],
+                        prediction_nb_velo=int(r["prediction_nb_velo"]),
+                    )
+                    for r in results
+                ],
             )
         )
 
