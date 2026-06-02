@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Query
 from src.api.schemas.predictions import PredictionStation, PredictionMetro, PredictionTrajet
 from src.api.services import predictions_service
 from src.api.dependencies import get_current_user,get_predictor
+import re
+from fastapi import HTTPException, status
 
 router = APIRouter(
     prefix="/v1/predictions",
@@ -11,35 +13,44 @@ router = APIRouter(
 )
 
 HEURE_PATTERN = r"^\d{2}:\d{2}$"
+HEURE_REGEX = re.compile(r"^\d{2}:\d{2}$")
 
+def _validate_heures(heures: list[str]) -> None:
+    for h in heures:
+        if not HEURE_REGEX.match(h):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"Heure invalide : '{h}'. Format attendu : HH:mm",
+            )
 
 @router.get(
     "/station",
     response_model=PredictionStation,
     summary="Prédiction de disponibilité pour une station",
     description=(
-        "Prédit le **nombre de vélos disponibles** dans une station à une heure donnée.\n\n"
+        "Prédit le **nombre de vélos disponibles** dans une station à une ou plusieurs heures.\n\n"
         "### Paramètres\n\n"
-        "- **id_station** : ID de la station concernée\n"
-        "- **heure** : heure de la prédiction, format **HH:mm** (ex: `08:30`, `17:45`)\n"
-        "- **date** *(optionnel)* : date au format **YYYY-MM-DD**. Défaut = aujourd'hui.\n\n"
-        "### Fonctionnement\n\n"
-        "Le modèle prend en compte l'historique de la station, le jour de la semaine, "
-        "les conditions météo prévues et les événements particuliers "
-        "(jours fériés, grèves...).\n\n"
-        "### Exemple d'appel\n\n"
-        "`GET /v1/predictions/station?id_station=42&heure=08:30&date=2025-01-15`"
+        "- **id_station** : ID de la station\n"
+        "- **heure** : une ou plusieurs heures au format **HH:mm**. "
+        "Répétez le paramètre pour en passer plusieurs.\n"
+        "- **date** *(optionnel)* : format **YYYY-MM-DD**. Défaut = aujourd'hui.\n\n"
+        "### Exemples d'appel\n\n"
+        "`GET /v1/predictions/station?id_station=42&heure=08:30`\n\n"
+        "`GET /v1/predictions/station?id_station=42&heure=08:30&heure=12:00&heure=18:00`"
     ),
-    responses={
-        404: {"description": "Station introuvable"},
-    },
+    responses={404: {"description": "Station introuvable"}},
 )
 def predict_station(
     id_station: int = Query(..., description="ID de la station"),
-    heure: str = Query(..., pattern=r"^\d{2}:\d{2}$", description="Format HH:mm"),
+    heure: list[str] = Query(
+        ...,
+        description="Une ou plusieurs heures HH:mm (répéter le paramètre)",
+        examples=["08:30", "12:00"],
+    ),
     date: date_type | None = Query(None, description="Format YYYY-MM-DD"),
-    predictor = Depends(get_predictor),
+    predictor=Depends(get_predictor),
 ):
+    _validate_heures(heure)
     return predictions_service.predict_station(predictor, id_station, heure, date)
 
 
@@ -48,35 +59,22 @@ def predict_station(
     response_model=PredictionMetro,
     summary="Prédiction autour d'un arrêt de transport",
     description=(
-        "Retourne les prédictions de disponibilité pour **toutes les stations Vélib'** "
-        "proches d'un arrêt de transport (métro, bus, RER...).\n\n"
-        "### Paramètres\n\n"
-        "- **arret_transport** : nom ou ID de l'arrêt (ex: `République`, `Châtelet`)\n"
-        "- **heure** : heure cible au format **HH:mm**\n"
-        "- **date** *(optionnel)* : date au format **YYYY-MM-DD**. Défaut = aujourd'hui.\n\n"
-        "### Cas d'usage\n\n"
-        "Idéal pour les usagers qui sortent du métro et cherchent un Vélib' à proximité. "
-        "Les stations sont triées par **distance croissante**.\n\n"
-        "### Exemple d'appel\n\n"
-        "`GET /v1/predictions/metro?arret_transport=République&heure=18:00`"
+        "Prédictions pour les stations Vélib' proches d'un arrêt de transport, "
+        "à une ou plusieurs heures.\n\n"
+        "### Exemples d'appel\n\n"
+        "`GET /v1/predictions/metro?arret_transport=République&heure=18:00`\n\n"
+        "`GET /v1/predictions/metro?arret_transport=République&heure=08:00&heure=18:00`"
     ),
-    responses={
-        404: {"description": "Arrêt de transport introuvable"},
-    },
+    responses={404: {"description": "Arrêt de transport introuvable"}},
 )
 def predict_metro(
-    arret_transport: str = Query(
-        ...,
-        description="ID ou nom de l'arrêt de transport (ex: 'République' ou '12345')",
-        examples="République",
-    ),
-    heure: str = Query(..., pattern=HEURE_PATTERN, examples="18:00"),
-    date: date_type | None = Query(None, examples="2026-06-03"),
-    predictor = Depends(get_predictor),
+    arret_transport: str = Query(..., examples="République"),
+    heure: list[str] = Query(..., examples=["18:00"]),
+    date: date_type | None = Query(None),
+    predictor=Depends(get_predictor),
 ):
-    return predictions_service.predict_metro(
-        predictor, arret_transport, heure, date
-    )
+    _validate_heures(heure)
+    return predictions_service.predict_metro(predictor, arret_transport, heure, date)
 
 
 @router.get(

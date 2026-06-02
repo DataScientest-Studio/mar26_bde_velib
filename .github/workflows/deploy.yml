@@ -50,6 +50,6 @@ jobs:
             # 3. Redémarrage du conteneur
             cd /opt/docker/stack
             sudo docker compose restart python
-            sudo docker compose restart velib_cron
-            sudo docker compose restart velib_api
-            sudo docker compose restart velib_streamlit
+            sudo docker compose restart cron
+            sudo docker compose restart api
+            sudo docker compose restart streamlit

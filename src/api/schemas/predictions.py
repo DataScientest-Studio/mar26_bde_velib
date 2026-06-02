@@ -4,11 +4,15 @@ from typing import Self
 
 
 # --- Prédiction station ---
+class PredictionHoraire(BaseModel):
+    heure: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    prediction_nb_velo: int
+
+
 class PredictionStation(BaseModel):
     id_station: int
-    heure: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="Format HH:mm")
     date: date_type
-    prediction_nb_velo: int
+    predictions: list[PredictionHoraire]
 
 
 # --- Prédiction métro ---
@@ -16,8 +20,7 @@ class StationProche(BaseModel):
     id_station: int
     nom_station: str
     distance_metres: float
-    heure: str
-    prediction_nb_velo: int
+    predictions: list[PredictionHoraire]   # ← idem, liste
 
 
 class PredictionMetro(BaseModel):

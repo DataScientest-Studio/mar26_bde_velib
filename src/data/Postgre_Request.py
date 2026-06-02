@@ -1117,7 +1117,8 @@ class PostgreRequest:
                 JOIN station_info_flat ON proximity.id_station = station_info_flat.id_station
                 JOIN transport_stops ON proximity.id_transport_stop = transport_stops.id_transport_stop
                 WHERE {where}
-                LIMIT 3
+                ORDER BY distance ASC
+                LIMIT 1
             """
 
             df = pd.read_sql_query(query, get_pg_conn())
@@ -1376,5 +1377,91 @@ class PostgreRequest:
             print(f"Erreur de connexion ou de requête : {e}")
             return None
                 
+    def extract_stats_global():
+        """
+        Extrait les statistiques globales du réseau Vélib' au dernier snapshot.
+
+        Returns
+        -------
+        pandas.DataFrame ou None
+            DataFrame avec une seule ligne contenant :
+            - nb_stations_total    (int) : Nombre total de stations
+            - nb_velos_disponibles (int) : Total vélos (méca + ebike)
+            - nb_places_libres     (int) : Total places libres
+            - derniere_maj         (timestamp) : Horodatage du dernier snapshot
+
+            Retourne None en cas d'erreur.
+        """
+        try:
+            query = """
+                SELECT 
+                    COUNT(DISTINCT id_station) AS nb_stations_total,
+                    SUM(num_bikes_mechanical + num_bikes_ebike) AS nb_velos_disponibles,
+                    SUM(num_docks_available) AS nb_places_libres,
+                    MAX(inserted_at) AS derniere_maj
+                FROM station_status_flat
+                WHERE inserted_at = (
+                    SELECT MAX(inserted_at) FROM station_status_flat
+                );
+            """
+            df = pd.read_sql_query(query, get_pg_conn())
+            return df
+
+        except Exception as e:
+            logger.error(f"❌ - Erreur extract_stats_global : {e}")
+            return None
+
+
+    def extract_stats_semaine(id_station: int):
+        """
+        Extrait les statistiques journalières d'une station sur les 7 derniers jours,
+        découpées en 3 plages horaires (matin / après-midi / soir).
+
+        Parameters
+        ----------
+        id_station : int
+            Identifiant de la station.
+
+        Returns
+        -------
+        pandas.DataFrame ou None
+            Colonnes : jour, moyenne_velo_matin, moyenne_velo_aprem, moyenne_velo_soir
+            Triées du plus ancien au plus récent.
+        """
+        try:
+            query = """
+                SELECT 
+                    DATE(inserted_at) AS jour,
+                    ROUND(AVG(
+                        CASE WHEN EXTRACT(HOUR FROM inserted_at) >= 6 
+                            AND EXTRACT(HOUR FROM inserted_at) < 12 
+                        THEN num_bikes_mechanical + num_bikes_ebike 
+                        END
+                    ), 1) AS moyenne_velo_matin,
+                    ROUND(AVG(
+                        CASE WHEN EXTRACT(HOUR FROM inserted_at) >= 12 
+                            AND EXTRACT(HOUR FROM inserted_at) < 18 
+                        THEN num_bikes_mechanical + num_bikes_ebike 
+                        END
+                    ), 1) AS moyenne_velo_aprem,
+                    ROUND(AVG(
+                        CASE WHEN EXTRACT(HOUR FROM inserted_at) >= 18 
+                            AND EXTRACT(HOUR FROM inserted_at) < 24 
+                        THEN num_bikes_mechanical + num_bikes_ebike 
+                        END
+                    ), 1) AS moyenne_velo_soir
+                FROM station_status_flat
+                WHERE 
+                    id_station = %(id_station)s
+                    AND inserted_at >= NOW() - INTERVAL '7 days'
+                GROUP BY DATE(inserted_at)
+                ORDER BY jour ASC;
+            """
+            df = pd.read_sql_query(query, get_pg_conn(), params={"id_station": id_station})
+            return df
+
+        except Exception as e:
+            logger.error(f"❌ - Erreur extract_stats_semaine : {e}")
+            return None
 
 
