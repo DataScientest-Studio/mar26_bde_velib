@@ -2,7 +2,7 @@ from datetime import date as date_type
 from fastapi import APIRouter, Depends, Query
 from src.api.schemas.predictions import PredictionStation, PredictionMetro, PredictionTrajet
 from src.api.services import predictions_service
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user,get_predictor
 
 router = APIRouter(
     prefix="/v1/predictions",
@@ -36,10 +36,11 @@ HEURE_PATTERN = r"^\d{2}:\d{2}$"
 )
 def predict_station(
     id_station: int = Query(..., description="ID de la station"),
-    heure: str = Query(..., pattern=HEURE_PATTERN, description="Format HH:mm"),
-    date: date_type | None = Query(None, description="Format YYYY-MM-DD (défaut: aujourd'hui)"),
+    heure: str = Query(..., pattern=r"^\d{2}:\d{2}$", description="Format HH:mm"),
+    date: date_type | None = Query(None, description="Format YYYY-MM-DD"),
+    predictor = Depends(get_predictor),
 ):
-    return predictions_service.predict_station(id_station, heure, date)
+    return predictions_service.predict_station(predictor, id_station, heure, date)
 
 
 @router.get(
@@ -64,11 +65,18 @@ def predict_station(
     },
 )
 def predict_metro(
-    arret_transport: str = Query(..., description="ID ou nom de l'arrêt"),
-    heure: str = Query(..., pattern=HEURE_PATTERN),
-    date: date_type | None = Query(None),
+    arret_transport: str = Query(
+        ...,
+        description="ID ou nom de l'arrêt de transport (ex: 'République' ou '12345')",
+        examples="République",
+    ),
+    heure: str = Query(..., pattern=HEURE_PATTERN, examples="18:00"),
+    date: date_type | None = Query(None, examples="2026-06-03"),
+    predictor = Depends(get_predictor),
 ):
-    return predictions_service.predict_metro(arret_transport, heure, date)
+    return predictions_service.predict_metro(
+        predictor, arret_transport, heure, date
+    )
 
 
 @router.get(

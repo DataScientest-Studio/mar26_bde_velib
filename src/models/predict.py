@@ -28,16 +28,16 @@ FEATURES = [
         ]
 
 
-class Presiction :
+class Prediction :
 
     def __init__(self, model_path: Path = Path("models/model.pkl")):
-
         self.model_path = model_path
+        if not self.model_path.exists():
+            raise FileNotFoundError(f"Modèle introuvable : {self.model_path}")
         self.model = joblib.load(self.model_path)
         self.meteo_key = os.getenv("METEO_KEY")
-
-
-    #METEO_KEY= os.getenv("METEO_KEY")
+        if not self.meteo_key:
+            logger.warning("METEO_KEY non définie, prédictions météo limitées")
 
 
 

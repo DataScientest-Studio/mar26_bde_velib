@@ -1117,6 +1117,7 @@ class PostgreRequest:
                 JOIN station_info_flat ON proximity.id_station = station_info_flat.id_station
                 JOIN transport_stops ON proximity.id_transport_stop = transport_stops.id_transport_stop
                 WHERE {where}
+                LIMIT 3
             """
 
             df = pd.read_sql_query(query, get_pg_conn())

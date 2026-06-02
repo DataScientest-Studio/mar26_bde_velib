@@ -1,5 +1,7 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from src.api.routers import auth, health, stations, predictions, statistiques
+import logging
 
 tags_metadata = [
     {
@@ -25,9 +27,28 @@ tags_metadata = [
     },
 ]
 
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        from src.models.predict import Prediction
+        app.state.predictor = Prediction()
+        app.state.predictor_is_fake = False
+        logger.info("✅ Vrai modèle ML chargé")
+    except Exception as e:
+        from src.models.fake_predictor import FakePredictor
+        app.state.predictor = FakePredictor()
+        app.state.predictor_is_fake = True
+        logger.warning(f"⚠️ Modèle indisponible ({e}), bascule sur FakePredictor")
+
+    yield
+    app.state.predictor = None
+
 app = FastAPI(
     title="API Vélib' Predict",
     version="1.0.0",
+    lifespan=lifespan,
     description="""
 API de prédiction de disponibilité des stations Vélib'.
 
