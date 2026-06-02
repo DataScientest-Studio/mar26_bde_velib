@@ -102,15 +102,6 @@ def client():
             _not_found()
         return FAKE_PREDICTION_STATION
 
-    def _predict_trajet(predictor, heure_depart, date_=None,
-                        lat_depart=None, lon_depart=None,
-                        lat_arrivee=None, lon_arrivee=None,
-                        id_station_depart=None, id_station_arrivee=None):
-        has_depart  = (lat_depart  is not None and lon_depart  is not None) or id_station_depart  is not None
-        has_arrivee = (lat_arrivee is not None and lon_arrivee is not None) or id_station_arrivee is not None
-        if not has_depart or not has_arrivee:
-            raise HTTPException(status_code=422, detail="Paramètres départ/arrivée manquants")
-        return FAKE_PREDICTION_TRAJET
 
     app.dependency_overrides[get_current_user] = _fake_user
     app.state.predictor = FakePredictor()
