@@ -58,7 +58,8 @@ if bouton_recherche or query:
     if query:
         url = requests.get(
             f"http://{HOST}:8000/v1/predictions/metro",
-            params={"arret_transport": query, "heure": heure_str, "date": date_str} , headers={"Authorization": f"Bearer {access_token}"} 
+            params={"arret_transport": query, "heure": heure_str, "date": date_str},
+            headers={"Authorization": f"Bearer {access_token}"}
         )
 
         if url.status_code == 200:
@@ -67,14 +68,29 @@ if bouton_recherche or query:
 
             metro = url.json()
             df_metro = pd.DataFrame(metro["stations"])
+
+            # 🔧 Aplatir la colonne "predictions" (liste imbriquée)
+            df_predictions = df_metro.explode("predictions").reset_index(drop=True)
+            df_predictions = pd.concat(
+                [
+                    df_predictions[["nom_station", "distance_metres"]],
+                    pd.json_normalize(df_predictions["predictions"])
+                ],
+                axis=1
+            )
+
+            print(df_predictions)  # debug
+
             st.dataframe(
-                df_metro[["nom_station", "distance_metres", "heure", "prediction_nb_velo"]],
+                df_predictions[["nom_station", "distance_metres", "heure", "prediction_nb_velo"]],
                 use_container_width=True
             )
+
         elif url.status_code == 404:
             st.error("❌ Station inconnue")
         else:
             st.error(f"❌ Erreur API : {url.status_code}")
+
 
     else:
         st.warning("⚠️ Veuillez écrire quelque chose avant de rechercher.")
