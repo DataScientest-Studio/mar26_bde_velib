@@ -164,7 +164,11 @@ docker compose up -d
 ```bash
 sudo docker ps
 ```
+### 8. Entraînement du modèle 
 
+```bash
+python  src/models/train.py
+```
 ---
 
 ## ▶️ Tester les services
