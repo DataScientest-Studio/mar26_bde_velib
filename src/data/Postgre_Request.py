@@ -605,7 +605,7 @@ class PostgreRequest:
                 LEFT JOIN meteo w ON  DATE_TRUNC('hour', s.inserted_at) = DATE_TRUNC('hour', w.inserted_at) 
                 WHERE  w.city_name  ='Paris'  
                 
-                ORDER BY RANDOM() LIMIT 25000000; """    #LIMIT 30000000 ;
+                ORDER BY RANDOM() ; """ #LIMIT  #25000000;     #LIMIT 30000000 ;
             
             
             conn = get_pg_conn()
